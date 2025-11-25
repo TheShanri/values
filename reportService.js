@@ -32,6 +32,63 @@ function sendJson(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+function parseReport(text) {
+  if (!text) return null;
+  const cleaned = text.replace(/```json|```/gi, '').trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  const candidate = match ? match[0] : cleaned;
+  try {
+    return JSON.parse(candidate);
+  } catch (error) {
+    return null;
+  }
+}
+
+function buildLocalFallback(payload) {
+  const primary = payload.participants?.[0]?.profile?.name || 'You';
+  const secondary = payload.participants?.[1]?.profile?.name;
+  const solo = payload.mode !== 'paired';
+
+  return {
+    title: solo ? `${primary}'s Values Report` : `${primary} + ${secondary} Values Report`,
+    intro: solo
+      ? `${primary} is mapping what matters most. Here's a quick constellation of themes based on the quiz responses.`
+      : `${primary} and ${secondary} share a lot of heart. Here's where their values orbit together and where they diverge.`,
+    meta: {
+      mode: payload.mode,
+      relationshipType: payload.relationshipType,
+      quizLength: payload.quizLength || payload.length,
+    },
+    participants: payload.participants?.map((p) => ({
+      name: p.profile?.name,
+      archetype: 'Explorer of Potential',
+      summary:
+        'An adaptive, curious spirit who likes to test ideas in the real world and grow through meaningful connections.',
+      strengths: ['Openness to growth', 'Ability to hold nuance', 'Collaborative problem solving'],
+      growth: ['Name and honor non-negotiables early', 'Ask for support before burnout hits'],
+    })),
+    compatibility: solo
+      ? null
+      : {
+          summary: 'Their value maps overlap around curiosity and long-term growth, with some frictions around pacing.',
+          harmony: ['Shared hunger for learning', 'Respect for autonomy', 'Desire for emotionally honest conversations'],
+          tension: ['Different speeds for decisions', 'One may crave more structure than the other'],
+        },
+    recommendations: [
+      'Schedule a monthly “values check-in” to celebrate alignment and adjust expectations.',
+      'Name two rituals that honor both autonomy and togetherness.',
+      'Translate disagreements into “value stories” rather than blame.',
+    ],
+    inspiration: [
+      '“Alignment is less about sameness and more about honoring each other’s principles.”',
+      '“Clarity is kindness: speak your values aloud.”',
+    ],
+    links: [
+      { label: 'The Examined Existence', url: 'https://www.theexaminedexistence.com/' },
+    ],
+  };
+}
+
 function parsePayload(body) {
   try {
     return JSON.parse(body || '{}');
@@ -84,7 +141,7 @@ function buildPrompt({ participants, mode, relationshipType }) {
     })
     .join('\n\n');
 
-  return `${intro}\n\nUse this outline:\n- Introduction\n- Strengths & Weaknesses\n- Romantic Relationships\n- Friendships\n- Conclusion\n\nProfiles:\n${summaries}`;
+  return `${intro}\n\nRespond ONLY with JSON (no markdown fences) using this schema:\n{\n  "title": "Values Alignment Report",\n  "intro": "1-3 sentence overview",\n  "meta": {"mode": "solo|paired", "relationshipType": "${label}", "quizLength": "quick|moderate|full"},\n  "participants": [\n    {"name": "Name", "archetype": "Title", "summary": "sentence", "strengths": ["..."], "growth": ["..."]}\n  ],\n  "compatibility": {"summary": "paragraph", "harmony": ["..."], "tension": ["..."]},\n  "recommendations": ["..."],\n  "inspiration": ["short quotes"],\n  "links": [{"label": "Source", "url": "https://..."}]\n}\n\nProfiles:\n${summaries}`;
 }
 
 async function generateReport({ participants, mode, relationshipType }) {
@@ -132,7 +189,7 @@ async function generateReport({ participants, mode, relationshipType }) {
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       'Gemini returned no content. Please try again.';
 
-    return { text, usedGemini: true };
+    return { text, usedGemini: true, report: parseReport(text) };
   } catch (error) {
     clearTimeout(timeout);
     return {
@@ -150,6 +207,9 @@ async function respondWithReport(res, payload) {
   }
 
   const report = await generateReport(payload);
+  if (!report.report) {
+    report.report = buildLocalFallback(payload);
+  }
   sendJson(res, 200, report);
 }
 
