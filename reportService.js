@@ -130,6 +130,8 @@ function buildPrompt({ participants, mode, relationshipType }) {
   const intro = solo
     ? "Here is a single person's values profile. Create an encouraging, strengths-based character review."
     : `Here are two people and their stated relationship (${label}). Create a character review for each, then provide a comparison section that highlights harmony and tension points.`;
+  const emphasisNote =
+    'When writing, explicitly reference the exact values and ratings the user selected. Call out at least five values marked as Critical or Highly Valued for each person so the reader can see their choices reflected back.';
 
   const summaries = participants
     .map((p, idx) => {
@@ -145,7 +147,7 @@ function buildPrompt({ participants, mode, relationshipType }) {
     })
     .join('\n\n');
 
-  return `${intro}\n\nRespond ONLY with JSON (no markdown fences) using this schema:\n{\n  "title": "Values Alignment Report",\n  "intro": "1-3 sentence overview",\n  "meta": {"mode": "solo|paired", "relationshipType": "${label}", "quizLength": "quick|moderate|full"},\n  "participants": [\n    {"name": "Name", "archetype": "Title", "synopsis": "2-3 paragraphs that summarize who they are, how they show up, and their relational vibe", "summary": "1-2 sentence tagline", "strengths": ["..."], "growth": ["..."]}\n  ],\n  "compatibility": {"pairedSynopsis": "2-3 paragraphs on the shared dynamic", "summary": "paragraph", "harmony": ["..."], "tension": ["..."]},\n  "recommendations": ["..."],\n  "inspiration": ["short quotes"],\n  "links": [{"label": "Source", "url": "https://..."}]\n}\n\nProfiles:\n${summaries}`;
+  return `${intro}\n${emphasisNote}\n\nRespond ONLY with JSON (no markdown fences) using this schema:\n{\n  "title": "Values Alignment Report",\n  "intro": "1-3 sentence overview",\n  "meta": {"mode": "solo|paired", "relationshipType": "${label}", "quizLength": "quick|moderate|full"},\n  "participants": [\n    {"name": "Name", "archetype": "Title", "synopsis": "2-3 paragraphs that summarize who they are, how they show up, and their relational vibe", "summary": "1-2 sentence tagline", "strengths": ["..."], "growth": ["..."]}\n  ],\n  "compatibility": {"pairedSynopsis": "2-3 paragraphs on the shared dynamic", "summary": "paragraph", "harmony": ["..."], "tension": ["..."]},\n  "recommendations": ["..."],\n  "inspiration": ["short quotes"],\n  "links": [{"label": "Source", "url": "https://..."}]\n}\n\nProfiles:\n${summaries}`;
 }
 
 async function generateReport({ participants, mode, relationshipType }) {

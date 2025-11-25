@@ -450,27 +450,27 @@ button:focus-visible {
 }
 
 .option--indifferent {
-  background: linear-gradient(135deg, #f2f2f7, #e2e3ed);
-  color: #1f1f27;
-  border-color: rgba(123, 123, 144, 0.4);
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.14), rgba(148, 163, 184, 0.26));
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.7);
 }
 
 .option--valued {
-  background: linear-gradient(135deg, #e5f9ed, #d2f2e1);
-  color: #0f2e1e;
-  border-color: rgba(59, 226, 134, 0.6);
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.2), rgba(74, 222, 128, 0.32));
+  color: #ecfdf3;
+  border-color: rgba(74, 222, 128, 0.8);
 }
 
 .option--highly {
-  background: linear-gradient(135deg, #e6f1ff, #d7eaff);
-  color: #0c2037;
-  border-color: rgba(91, 167, 255, 0.65);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.32));
+  color: #e0f5ff;
+  border-color: rgba(56, 189, 248, 0.8);
 }
 
 .option--critical {
-  background: linear-gradient(135deg, #f1e9ff, #e4d7ff);
-  color: #28123e;
-  border-color: rgba(177, 79, 255, 0.7);
+  background: linear-gradient(135deg, rgba(192, 132, 252, 0.2), rgba(192, 132, 252, 0.34));
+  color: #f6edff;
+  border-color: rgba(192, 132, 252, 0.82);
 }
 
 .option--selected {
@@ -743,6 +743,13 @@ button:focus-visible {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 16px;
+}
+
+.report-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .report-hero h1 {
