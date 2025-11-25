@@ -86,11 +86,22 @@ function scrollToQuizTop() {
   dom.quizCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function shuffleValues(list) {
+  const shuffled = [...list];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+const shuffledValues = shuffleValues(valuesData);
+
 function subsetValues() {
-  const sorted = [...valuesData].sort((a, b) => a.id - b.id);
-  if (state.length === 'quick') return sorted.slice(0, 50);
-  if (state.length === 'moderate') return sorted.slice(0, 125);
-  return sorted;
+  const pool = [...shuffledValues];
+  if (state.length === 'quick') return pool.slice(0, 50);
+  if (state.length === 'moderate') return pool.slice(0, 125);
+  return pool;
 }
 
 function updateValues(preserveAnswers = false) {
@@ -197,7 +208,8 @@ function buildProfile(prefix = '') {
 
   const name = nameField?.value?.trim();
   if (!name) {
-    alert(`Please enter a name for ${prefix === '2' ? 'participant 2' : 'participant 1'}.`);
+    showToast(`Please enter a name for ${prefix === '2' ? 'participant 2' : 'participant 1'}.`);
+    nameField?.focus();
     return null;
   }
 
