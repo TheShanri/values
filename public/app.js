@@ -196,7 +196,7 @@ function prepareProfiles() {
     const customRel = dom.customRelationship.value.trim();
     state.relationshipType = rel === 'other' && customRel ? customRel : rel;
   } else {
-    state.relationshipType = 'solo';
+    state.relationshipType = '';
   }
 
   state.profiles = { 1: primary };
@@ -274,15 +274,36 @@ async function finalize() {
         participants: state.participants,
         mode: state.mode,
         relationshipType: state.relationshipType,
+        quizLength: state.length,
       }),
     });
 
     if (!response.ok) throw new Error('Unable to reach the report service.');
     const data = await response.json();
-    dom.reportStatus.textContent = data.usedGemini
-      ? 'Gemini response ready.'
-      : 'Preview shown because Gemini key was missing or unreachable.';
-    dom.reportOutput.innerHTML = formatReport(data.text);
+    if (data.report) {
+      dom.reportStatus.textContent = data.usedGemini
+        ? 'Gemini response ready.'
+        : 'Preview shown because Gemini key was missing or unreachable.';
+      sessionStorage.setItem(
+        'valuesReport',
+        JSON.stringify({
+          report: data.report,
+          usedGemini: data.usedGemini,
+          rawText: data.rawText || data.text,
+          payload: {
+            participants: state.participants,
+            mode: state.mode,
+            relationshipType: state.relationshipType,
+            quizLength: state.length,
+          },
+        })
+      );
+      window.location.href = '/report.html';
+      return;
+    }
+
+    dom.reportStatus.textContent = 'Report returned without structured data. Displaying raw text.';
+    dom.reportOutput.innerHTML = formatReport(data.text || '');
   } catch (error) {
     dom.reportStatus.textContent = 'Report failed.';
     dom.reportOutput.textContent = error.message;

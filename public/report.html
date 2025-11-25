@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Values Report</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <nav class="top-nav">
+          <a href="/" class="nav-logo">Values Lab</a>
+          <div class="nav-links">
+            <a href="/">Quiz</a>
+            <a href="/about.html">About</a>
+          </div>
+        </nav>
+        <div class="hero__badge">Gemini-powered insights</div>
+        <div class="report-hero">
+          <p class="eyebrow">Report Center</p>
+          <h1 id="reportTitle">Loading report...</h1>
+          <div class="report-meta" id="reportMeta"></div>
+        </div>
+      </header>
+
+      <main class="layout" id="reportContent">
+        <section class="card report-card">
+          <h2 class="section-title">Report unavailable</h2>
+          <p class="hint">We couldn't find a report in session storage. Please take the quiz first.</p>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="report.js"></script>
+  </body>
+</html>
