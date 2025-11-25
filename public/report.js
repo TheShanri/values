@@ -107,11 +107,19 @@ function renderReport(data) {
 
   if (data.meta) {
     metaEl.innerHTML = '';
+    const labelMap = {
+      relationshipType: 'Relationship Type',
+      quizLength: 'Quiz Length',
+      mode: 'Mode',
+    };
+
     ['relationshipType', 'quizLength', 'mode'].forEach((key) => {
       if (data.meta[key]) {
         const pill = document.createElement('span');
         pill.className = 'pill';
-        pill.textContent = `${key.replace(/([A-Z])/g, ' $1')}: ${data.meta[key]}`;
+        const label = labelMap[key] || key;
+        const value = String(data.meta[key]);
+        pill.textContent = `${label}: ${value.charAt(0).toUpperCase()}${value.slice(1)}`;
         metaEl.appendChild(pill);
       }
     });
