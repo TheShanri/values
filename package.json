@@ -1,0 +1,10 @@
+{
+  "name": "values",
+  "version": "1.0.0",
+  "description": "Values alignment quiz and Gemini-powered report",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}
