@@ -87,12 +87,20 @@ function scrollToQuizTop() {
 }
 
 function shuffleValues(list) {
-  const shuffled = [...list];
+  const shuffled = list.map((value) => ({ ...value }));
+  let seed = 20241129;
+
+  const seededRandom = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+
   for (let i = shuffled.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(seededRandom() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  return shuffled;
+
+  return shuffled.map((value, index) => ({ ...value, id: index + 1 }));
 }
 
 const shuffledValues = shuffleValues(valuesData);

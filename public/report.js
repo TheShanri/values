@@ -1,6 +1,9 @@
 const container = document.getElementById('reportContent');
 const titleEl = document.getElementById('reportTitle');
 const metaEl = document.getElementById('reportMeta');
+const downloadPdfBtn = document.getElementById('downloadPdf');
+
+let cachedPayload = null;
 
 function createCard(title, icon, body) {
   const section = document.createElement('section');
@@ -187,6 +190,7 @@ function loadReport() {
   if (!stored) return;
   try {
     const parsed = JSON.parse(stored);
+    cachedPayload = parsed.payload || null;
     const report = parsed.report || null;
     if (report) {
       report.meta = report.meta || parsed.payload;
@@ -198,3 +202,97 @@ function loadReport() {
 }
 
 loadReport();
+
+function writeTableHeader(doc, startY) {
+  doc.setFontSize(10);
+  doc.text('No.', 14, startY);
+  doc.text('Value', 26, startY);
+  doc.text('Rating', 150, startY);
+  return startY + 6;
+}
+
+function ensureSpace(doc, currentY, heightNeeded) {
+  if (currentY + heightNeeded <= 280) return currentY;
+  doc.addPage();
+  return 20;
+}
+
+async function downloadPdf() {
+  if (!cachedPayload?.participants?.length) {
+    alert('No report data available. Please generate a report first.');
+    return;
+  }
+
+  const { jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
+  const doc = new jsPDF();
+  let y = 14;
+
+  doc.setFontSize(16);
+  doc.text('Values Report', 14, y);
+  y += 8;
+
+  doc.setFontSize(10);
+  if (cachedPayload.mode) {
+    doc.text(`Mode: ${cachedPayload.mode}`, 14, y);
+    y += 6;
+  }
+  if (cachedPayload.relationshipType) {
+    doc.text(`Relationship: ${cachedPayload.relationshipType}`, 14, y);
+    y += 6;
+  }
+  if (cachedPayload.quizLength) {
+    doc.text(`Quiz length: ${cachedPayload.quizLength}`, 14, y);
+    y += 8;
+  }
+
+  cachedPayload.participants.forEach((participant, index) => {
+    if (index > 0) {
+      doc.addPage();
+      y = 14;
+    }
+
+    const profile = participant.profile || {};
+    doc.setFontSize(14);
+    doc.text(profile.name || `Participant ${index + 1}`, 14, y);
+    y += 8;
+
+    const metaBits = [];
+    if (profile.age) metaBits.push(`Age: ${profile.age}`);
+    if (profile.gender) metaBits.push(`Gender: ${profile.gender}`);
+    if (metaBits.length) {
+      doc.setFontSize(10);
+      doc.text(metaBits.join(' | '), 14, y);
+      y += 6;
+    }
+
+    y = writeTableHeader(doc, y);
+
+    (participant.responses || []).forEach((response) => {
+      const idLabel = String(response.id || response.value || '');
+      const valueLines = doc.splitTextToSize(response.value || 'Value', 110);
+      const ratingLines = doc.splitTextToSize(response.answer || 'Unrated', 40);
+      const rowHeight = Math.max(valueLines.length, ratingLines.length) * 6;
+
+      y = ensureSpace(doc, y, rowHeight + 6);
+      if (y === 20) {
+        y = writeTableHeader(doc, y);
+      }
+
+      doc.text(idLabel, 14, y);
+      valueLines.forEach((line, lineIdx) => {
+        doc.text(line, 26, y + lineIdx * 6);
+      });
+      ratingLines.forEach((line, lineIdx) => {
+        doc.text(line, 150, y + lineIdx * 6);
+      });
+
+      y += rowHeight;
+    });
+  });
+
+  doc.save('values-report.pdf');
+}
+
+if (downloadPdfBtn) {
+  downloadPdfBtn.addEventListener('click', downloadPdf);
+}
