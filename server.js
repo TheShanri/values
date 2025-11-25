@@ -1,9 +1,10 @@
+require('dotenv').config();
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
 
 const port = process.env.PORT || 3000;
-const V_KEY = process.env.V_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.V_KEY;
 const publicDir = path.join(__dirname, 'public');
 
 function sendJson(res, status, data) {
@@ -71,16 +72,19 @@ function buildPrompt({ participants, mode, relationshipType }) {
 async function generateReport({ participants, mode, relationshipType }) {
   const prompt = buildPrompt({ participants, mode, relationshipType });
 
-  if (!V_KEY) {
+  if (!GEMINI_API_KEY) {
     return {
       text: 'Gemini key not configured. Here is a preview of what would be sent:\n' + prompt,
       usedGemini: false,
     };
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${V_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
@@ -95,8 +99,11 @@ async function generateReport({ participants, mode, relationshipType }) {
           ],
           generationConfig: { temperature: 0.7 },
         }),
+        signal: controller.signal,
       }
     );
+
+    clearTimeout(timeout);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -110,6 +117,7 @@ async function generateReport({ participants, mode, relationshipType }) {
 
     return { text, usedGemini: true };
   } catch (error) {
+    clearTimeout(timeout);
     return {
       text: `Unable to reach Gemini: ${error.message}. Prompt preview:\n${prompt}`,
       usedGemini: false,
@@ -127,15 +135,24 @@ function handleApi(req, res) {
       const payload = JSON.parse(body || '{}');
       const { participants, mode, relationshipType } = payload;
       if (!participants || !Array.isArray(participants) || participants.length === 0) {
-        return sendJson(res, 400, { error: 'At least one participant is required.' });
+        return sendJson(res, 400, { error: { code: 'bad_request', message: 'At least one participant is required.' } });
       }
       if (mode === 'paired' && participants.length < 2) {
-        return sendJson(res, 400, { error: 'Paired reports need two participant submissions.' });
+        return sendJson(res, 400, { error: { code: 'bad_request', message: 'Paired reports need two participant submissions.' } });
+      }
+      const invalidParticipant = participants.find(
+        (p) => !p?.profile?.name || !Array.isArray(p.responses)
+      );
+      if (invalidParticipant) {
+        return sendJson(res, 400, {
+          error: { code: 'bad_request', message: 'Each participant requires a name and responses list.' },
+        });
       }
       const report = await generateReport({ participants, mode, relationshipType });
       sendJson(res, 200, report);
     } catch (error) {
-      sendJson(res, 500, { error: error.message });
+      console.error('Report generation error:', error);
+      sendJson(res, 500, { error: { code: 'server_error', message: error.message } });
     }
   });
 }

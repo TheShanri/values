@@ -48,36 +48,74 @@
             <div class="pill">Bio & Preferences</div>
           </div>
           <form id="bioForm" class="grid">
-            <div class="field">
-              <label for="name">Name *</label>
-              <input id="name" name="name" placeholder="Your name" required />
+            <div class="fieldset">
+              <div class="legend">Participant 1</div>
+              <div class="field">
+                <label for="name">Name *</label>
+                <input id="name" name="name" placeholder="Your name" required />
+              </div>
+              <div class="field">
+                <label for="age">Age (optional)</label>
+                <input id="age" name="age" type="number" min="0" placeholder="30" />
+              </div>
+              <div class="field">
+                <label for="gender">Gender (optional)</label>
+                <select id="gender" name="gender">
+                  <option value="">Prefer not to say</option>
+                  <option>Woman</option>
+                  <option>Man</option>
+                  <option>Non-binary</option>
+                  <option>Genderqueer</option>
+                  <option>Agender</option>
+                  <option>Two-Spirit</option>
+                  <option>Transgender</option>
+                  <option>Intersex</option>
+                  <option>Questioning</option>
+                  <option>Self-described</option>
+                </select>
+                <input
+                  id="customGender"
+                  class="mt-8"
+                  type="text"
+                  placeholder="If self-described, share here"
+                />
+              </div>
             </div>
-            <div class="field">
-              <label for="age">Age (optional)</label>
-              <input id="age" name="age" type="number" min="0" placeholder="30" />
+
+            <div class="fieldset" id="partnerFields" hidden>
+              <div class="legend">Participant 2</div>
+              <div class="field">
+                <label for="name2">Name *</label>
+                <input id="name2" name="name2" placeholder="Their name" />
+              </div>
+              <div class="field">
+                <label for="age2">Age (optional)</label>
+                <input id="age2" name="age2" type="number" min="0" placeholder="30" />
+              </div>
+              <div class="field">
+                <label for="gender2">Gender (optional)</label>
+                <select id="gender2" name="gender2">
+                  <option value="">Prefer not to say</option>
+                  <option>Woman</option>
+                  <option>Man</option>
+                  <option>Non-binary</option>
+                  <option>Genderqueer</option>
+                  <option>Agender</option>
+                  <option>Two-Spirit</option>
+                  <option>Transgender</option>
+                  <option>Intersex</option>
+                  <option>Questioning</option>
+                  <option>Self-described</option>
+                </select>
+                <input
+                  id="customGender2"
+                  class="mt-8"
+                  type="text"
+                  placeholder="If self-described, share here"
+                />
+              </div>
             </div>
-            <div class="field">
-              <label for="gender">Gender (optional)</label>
-              <select id="gender" name="gender">
-                <option value="">Prefer not to say</option>
-                <option>Woman</option>
-                <option>Man</option>
-                <option>Non-binary</option>
-                <option>Genderqueer</option>
-                <option>Agender</option>
-                <option>Two-Spirit</option>
-                <option>Transgender</option>
-                <option>Intersex</option>
-                <option>Questioning</option>
-                <option>Self-described</option>
-              </select>
-              <input
-                id="customGender"
-                class="mt-8"
-                type="text"
-                placeholder="If self-described, share here"
-              />
-            </div>
+
             <div class="field">
               <label>Quiz length</label>
               <div class="chip-group" id="lengthChips">
@@ -107,6 +145,10 @@
               <input id="customRelationship" class="mt-8" type="text" placeholder="Describe the relationship" />
             </div>
           </form>
+
+          <div class="wizard-actions">
+            <button id="toQuiz" class="primary">Continue to Step 2</button>
+          </div>
         </section>
 
         <section id="quiz" class="card">
@@ -129,12 +171,11 @@
           <div class="pagination">
             <button id="prevPage" class="ghost" disabled>Previous</button>
             <div id="pageLabel">Page 1</div>
-            <button id="nextPage" class="ghost">Next</button>
+            <button id="nextPage" class="primary">Next</button>
           </div>
 
-          <div class="actions">
-            <button id="savePage" class="ghost">Save progress</button>
-            <button id="submitQuiz" class="primary">Submit participant</button>
+          <div class="wizard-actions">
+            <button id="backToBio" class="ghost">Back to Step 1</button>
           </div>
         </section>
 
