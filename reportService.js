@@ -21,7 +21,9 @@ function loadDotenv() {
 
 loadDotenv();
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.V_KEY;
+// Support multiple common environment variable names to reduce setup mistakes.
+const GEMINI_API_KEY =
+  process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.V_KEY;
 const GEMINI_ENDPOINT =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
 
@@ -90,7 +92,9 @@ async function generateReport({ participants, mode, relationshipType }) {
 
   if (!GEMINI_API_KEY) {
     return {
-      text: 'Gemini key not configured. Here is a preview of what would be sent:\n' + prompt,
+      text:
+        'Gemini key not configured (set GEMINI_API_KEY, GOOGLE_API_KEY, or V_KEY).' +
+        ` Here is a preview of what would be sent:\n${prompt}`,
       usedGemini: false,
     };
   }
