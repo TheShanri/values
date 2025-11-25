@@ -44,6 +44,10 @@ const dom = {
   reportOutput: document.querySelector('#reportOutput'),
   reportStatus: document.querySelector('#reportStatus'),
   downloadJson: document.querySelector('#downloadJson'),
+  toast: document.querySelector('#toast'),
+  loadingOverlay: document.querySelector('#loadingOverlay'),
+  loadingTitle: document.querySelector('#loadingTitle'),
+  loadingSubtitle: document.querySelector('#loadingSubtitle'),
 };
 
 const state = {
@@ -57,7 +61,30 @@ const state = {
   currentParticipant: 1,
   currentStep: 1,
   relationshipType: 'partner',
+  toastTimer: null,
 };
+
+function showToast(message) {
+  clearTimeout(state.toastTimer);
+  dom.toast.textContent = message;
+  dom.toast.hidden = false;
+  dom.toast.classList.add('visible');
+  state.toastTimer = setTimeout(() => {
+    dom.toast.classList.remove('visible');
+    dom.toast.hidden = true;
+  }, 2600);
+}
+
+function setLoading(isLoading, title = 'Evaluating values…', subtitle = 'Hold on while we prepare your report.') {
+  dom.loadingTitle.textContent = title;
+  dom.loadingSubtitle.textContent = subtitle;
+  dom.loadingOverlay.hidden = !isLoading;
+  dom.loadingOverlay.classList.toggle('visible', isLoading);
+}
+
+function scrollToQuizTop() {
+  dom.quizCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 function subsetValues() {
   const sorted = [...valuesData].sort((a, b) => a.id - b.id);
@@ -95,12 +122,20 @@ function updateProgress() {
   dom.progressBar.style.width = `${pct}%`;
 }
 
+function getSubmitLabel(isLastPage) {
+  if (!isLastPage) return 'Next';
+  if (state.mode === 'paired' && state.currentParticipant === 1) {
+    return 'Submit participant 1 details';
+  }
+  return 'Evaluate values';
+}
+
 function updatePaginationControls() {
   const totalPages = Math.ceil(state.values.length / PAGE_SIZE) || 1;
   dom.pageLabel.textContent = `Page ${state.currentPage} / ${totalPages}`;
   dom.prevPage.disabled = state.currentPage === 1;
   const isLastPage = state.currentPage === totalPages;
-  dom.nextPage.textContent = isLastPage ? 'Submit participant' : 'Next';
+  dom.nextPage.textContent = getSubmitLabel(isLastPage);
 }
 
 function toggleChip(group, value) {
@@ -241,7 +276,7 @@ async function submitParticipant() {
     renderTable();
     updateProgress();
     updatePaginationControls();
-    alert('Participant 1 captured. Please rate the same values for Participant 2.');
+    showToast('Participant 1 captured. Now rate the same values for Participant 2.');
     return;
   }
 
@@ -261,6 +296,9 @@ function renderJson(participants) {
 }
 
 async function finalize() {
+  setLoading(true);
+  dom.nextPage.disabled = true;
+  dom.prevPage.disabled = true;
   renderJson(state.participants);
   dom.resultsCard.hidden = false;
   dom.reportStatus.textContent = 'Requesting Gemini report...';
@@ -307,6 +345,10 @@ async function finalize() {
   } catch (error) {
     dom.reportStatus.textContent = 'Report failed.';
     dom.reportOutput.textContent = error.message;
+  } finally {
+    setLoading(false);
+    dom.nextPage.disabled = false;
+    dom.prevPage.disabled = false;
   }
 }
 
@@ -361,24 +403,32 @@ dom.modeChips.addEventListener('click', (e) => {
   toggleChip(dom.modeChips, state.mode);
   const isPaired = state.mode === 'paired';
   dom.relationshipField.hidden = !isPaired;
+  dom.relationshipField.classList.toggle('collapsed', !isPaired);
   dom.partnerFields.hidden = !isPaired;
   dom.name2.required = isPaired;
+  if (!isPaired) {
+    dom.relationship.value = 'partner';
+    dom.customRelationship.value = '';
+  }
 });
 
 dom.prevPage.addEventListener('click', () => {
   if (state.currentPage === 1) return;
   state.currentPage -= 1;
   renderTable();
+  scrollToQuizTop();
 });
 
 dom.nextPage.addEventListener('click', () => {
   const totalPages = Math.ceil(state.values.length / PAGE_SIZE);
   if (state.currentPage >= totalPages) {
+    scrollToQuizTop();
     submitParticipant();
     return;
   }
   state.currentPage += 1;
   renderTable();
+  scrollToQuizTop();
 });
 
 dom.downloadJson.addEventListener('click', downloadJson);
@@ -397,6 +447,7 @@ dom.backToBio.addEventListener('click', () => {
 toggleChip(dom.lengthChips, state.length);
 toggleChip(dom.modeChips, state.mode);
 dom.relationshipField.hidden = true;
+dom.relationshipField.classList.add('collapsed');
 dom.partnerFields.hidden = true;
 dom.name2.required = false;
 updateValues();

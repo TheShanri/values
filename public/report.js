@@ -24,6 +24,21 @@ function list(items) {
   return ul;
 }
 
+function paragraphs(text, className = 'synopsis') {
+  if (!text) return null;
+  const wrapper = document.createElement('div');
+  wrapper.className = className;
+  text
+    .split(/\n+/)
+    .filter(Boolean)
+    .forEach((chunk) => {
+      const p = document.createElement('p');
+      p.textContent = chunk;
+      wrapper.appendChild(p);
+    });
+  return wrapper;
+}
+
 function renderParticipants(participants = []) {
   const grid = document.createElement('div');
   grid.className = 'report-grid';
@@ -47,6 +62,9 @@ function renderParticipants(participants = []) {
       summary.textContent = p.summary;
       card.appendChild(summary);
     }
+
+    const synopsis = paragraphs(p.synopsis);
+    if (synopsis) card.appendChild(synopsis);
 
     if (p.strengths?.length) {
       const strengthsHeader = document.createElement('h4');
@@ -112,6 +130,8 @@ function renderReport(data) {
 
   if (data.compatibility) {
     const body = document.createElement('div');
+    const pairedSynopsis = paragraphs(data.compatibility.pairedSynopsis);
+    if (pairedSynopsis) body.appendChild(pairedSynopsis);
     if (data.compatibility.summary) {
       const p = document.createElement('p');
       p.textContent = data.compatibility.summary;

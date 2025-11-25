@@ -55,11 +55,24 @@
             <div class="pill">Bio & Preferences</div>
           </div>
           <form id="bioForm" class="grid">
-            <div class="field field--full">
-              <label>Report type</label>
-              <div class="chip-group" id="modeChips">
-                <button type="button" data-mode="solo" class="chip selected">Solo</button>
-                <button type="button" data-mode="paired" class="chip">Paired</button>
+            <div class="field field-row">
+              <div class="field">
+                <label>Quiz length</label>
+                <div class="chip-group" id="lengthChips">
+                  <button type="button" data-length="quick" class="chip selected">
+                    Quick (2–5 mins)
+                  </button>
+                  <button type="button" data-length="moderate" class="chip">Moderate (5–8 mins)</button>
+                  <button type="button" data-length="full" class="chip">In-depth (10+ mins)</button>
+                </div>
+                <p class="hint">Quick shows 50 values, moderate 125, full all 175.</p>
+              </div>
+              <div class="field">
+                <label>Report type</label>
+                <div class="chip-group" id="modeChips">
+                  <button type="button" data-mode="solo" class="chip selected">Solo</button>
+                  <button type="button" data-mode="paired" class="chip">Paired</button>
+                </div>
               </div>
             </div>
 
@@ -131,17 +144,6 @@
               </div>
             </div>
 
-            <div class="field">
-              <label>Quiz length</label>
-              <div class="chip-group" id="lengthChips">
-                <button type="button" data-length="quick" class="chip selected">
-                  Quick (2–5 mins)
-                </button>
-                <button type="button" data-length="moderate" class="chip">Moderate (5–8 mins)</button>
-                <button type="button" data-length="full" class="chip">In-depth (10+ mins)</button>
-              </div>
-              <p class="hint">Quick shows 50 values, moderate 125, full all 175.</p>
-            </div>
             <div class="field" id="relationshipField" hidden>
               <label for="relationship">Relationship type</label>
               <select id="relationship" name="relationship" class="styled-select">
@@ -212,6 +214,15 @@
       <footer class="footer">
         <p>Built for deep conversations about what matters most. Powered by Gemini.</p>
       </footer>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <div id="loadingOverlay" class="loading-overlay" hidden>
+      <div class="loader"></div>
+      <div class="loading-copy">
+        <p id="loadingTitle">Evaluating values…</p>
+        <p id="loadingSubtitle">Hang tight while we fetch your tailored report.</p>
+      </div>
     </div>
 
     <script type="module" src="values.js"></script>

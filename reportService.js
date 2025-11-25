@@ -62,6 +62,8 @@ function buildLocalFallback(payload) {
     participants: payload.participants?.map((p) => ({
       name: p.profile?.name,
       archetype: 'Explorer of Potential',
+      synopsis:
+        `${p.profile?.name || 'They'} tends to move through the world with a blend of curiosity and care, eager to understand how people tick and how systems fit together. They show up with a gentle confidence, using conversation to create psychological safety and then nudging ideas forward once the room feels aligned.\n\nFriends often see them as the person who notices subtle shifts in energy and invites clearer dialogue. They approach commitments with integrity, and when conflict appears, they try to translate competing needs into a shared plan instead of taking sides.`,
       summary:
         'An adaptive, curious spirit who likes to test ideas in the real world and grow through meaningful connections.',
       strengths: ['Openness to growth', 'Ability to hold nuance', 'Collaborative problem solving'],
@@ -70,6 +72,8 @@ function buildLocalFallback(payload) {
     compatibility: solo
       ? null
       : {
+          pairedSynopsis:
+            'Together, they tend to create an atmosphere of imaginative possibility and emotional steadiness. When they collaborate, one spotlights potential futures while the other grounds the conversation in present realities, giving their partnership a rhythm of dreaming and doing.\n\nTheir shared respect for autonomy keeps things spacious, yet they both light up around traditions that make the relationship feel intentional—like weekly walks, shared playlists, or celebrating small wins.',
           summary: 'Their value maps overlap around curiosity and long-term growth, with some frictions around pacing.',
           harmony: ['Shared hunger for learning', 'Respect for autonomy', 'Desire for emotionally honest conversations'],
           tension: ['Different speeds for decisions', 'One may crave more structure than the other'],
@@ -141,7 +145,7 @@ function buildPrompt({ participants, mode, relationshipType }) {
     })
     .join('\n\n');
 
-  return `${intro}\n\nRespond ONLY with JSON (no markdown fences) using this schema:\n{\n  "title": "Values Alignment Report",\n  "intro": "1-3 sentence overview",\n  "meta": {"mode": "solo|paired", "relationshipType": "${label}", "quizLength": "quick|moderate|full"},\n  "participants": [\n    {"name": "Name", "archetype": "Title", "summary": "sentence", "strengths": ["..."], "growth": ["..."]}\n  ],\n  "compatibility": {"summary": "paragraph", "harmony": ["..."], "tension": ["..."]},\n  "recommendations": ["..."],\n  "inspiration": ["short quotes"],\n  "links": [{"label": "Source", "url": "https://..."}]\n}\n\nProfiles:\n${summaries}`;
+  return `${intro}\n\nRespond ONLY with JSON (no markdown fences) using this schema:\n{\n  "title": "Values Alignment Report",\n  "intro": "1-3 sentence overview",\n  "meta": {"mode": "solo|paired", "relationshipType": "${label}", "quizLength": "quick|moderate|full"},\n  "participants": [\n    {"name": "Name", "archetype": "Title", "synopsis": "2-3 paragraphs that summarize who they are, how they show up, and their relational vibe", "summary": "1-2 sentence tagline", "strengths": ["..."], "growth": ["..."]}\n  ],\n  "compatibility": {"pairedSynopsis": "2-3 paragraphs on the shared dynamic", "summary": "paragraph", "harmony": ["..."], "tension": ["..."]},\n  "recommendations": ["..."],\n  "inspiration": ["short quotes"],\n  "links": [{"label": "Source", "url": "https://..."}]\n}\n\nProfiles:\n${summaries}`;
 }
 
 async function generateReport({ participants, mode, relationshipType }) {
