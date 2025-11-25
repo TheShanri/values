@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Values Alignment</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero__badge">Values Lab</div>
+        <div class="hero__content">
+          <div>
+            <p class="eyebrow">Meaningful relationships begin with shared values.</p>
+            <h1>Map what matters most.</h1>
+            <p class="lede">
+              Inspired by The Examined Existence, this guided experience helps you capture
+              and compare the values that drive you—and optionally someone important to you.
+            </p>
+            <div class="hero__cta">
+              <button id="startBtn" class="primary">Begin the quiz</button>
+              <button id="scrollToValues" class="ghost">Preview the values</button>
+            </div>
+          </div>
+          <div class="hero__art" aria-hidden="true">
+            <div class="neon-grid"></div>
+            <div class="neon-head">
+              <div class="neon-eye"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section id="setup" class="card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Step 1</p>
+              <h2>Tell us who is taking the quiz</h2>
+            </div>
+            <div class="pill">Bio & Preferences</div>
+          </div>
+          <form id="bioForm" class="grid">
+            <div class="field">
+              <label for="name">Name *</label>
+              <input id="name" name="name" placeholder="Your name" required />
+            </div>
+            <div class="field">
+              <label for="age">Age (optional)</label>
+              <input id="age" name="age" type="number" min="0" placeholder="30" />
+            </div>
+            <div class="field">
+              <label for="gender">Gender (optional)</label>
+              <select id="gender" name="gender">
+                <option value="">Prefer not to say</option>
+                <option>Woman</option>
+                <option>Man</option>
+                <option>Non-binary</option>
+                <option>Genderqueer</option>
+                <option>Agender</option>
+                <option>Two-Spirit</option>
+                <option>Transgender</option>
+                <option>Intersex</option>
+                <option>Questioning</option>
+                <option>Self-described</option>
+              </select>
+              <input
+                id="customGender"
+                class="mt-8"
+                type="text"
+                placeholder="If self-described, share here"
+              />
+            </div>
+            <div class="field">
+              <label>Quiz length</label>
+              <div class="chip-group" id="lengthChips">
+                <button type="button" data-length="quick" class="chip selected">
+                  Quick (2–5 mins)
+                </button>
+                <button type="button" data-length="moderate" class="chip">Moderate (5–8 mins)</button>
+                <button type="button" data-length="full" class="chip">In-depth (10+ mins)</button>
+              </div>
+              <p class="hint">Quick shows 50 values, moderate 125, full all 175.</p>
+            </div>
+            <div class="field">
+              <label>Report type</label>
+              <div class="chip-group" id="modeChips">
+                <button type="button" data-mode="solo" class="chip selected">Solo</button>
+                <button type="button" data-mode="paired" class="chip">Paired</button>
+              </div>
+            </div>
+            <div class="field" id="relationshipField" hidden>
+              <label for="relationship">Relationship focus</label>
+              <select id="relationship" name="relationship">
+                <option value="partner">Partner</option>
+                <option value="friend">Friend</option>
+                <option value="parent">Parent</option>
+                <option value="other">Other</option>
+              </select>
+              <input id="customRelationship" class="mt-8" type="text" placeholder="Describe the relationship" />
+            </div>
+          </form>
+        </section>
+
+        <section id="quiz" class="card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Step 2</p>
+              <h2>Rate the values</h2>
+              <p class="hint">Indifferent · Valued · Highly Valued · Critical</p>
+            </div>
+            <div class="pill" id="participantBadge">Participant 1</div>
+          </div>
+
+          <div class="progress">
+            <div id="progressBar" class="progress__bar"></div>
+            <div class="progress__label"><span id="progressCount">0</span> / <span id="progressTotal">0</span> answered</div>
+          </div>
+
+          <div class="table" id="tableContainer"></div>
+
+          <div class="pagination">
+            <button id="prevPage" class="ghost" disabled>Previous</button>
+            <div id="pageLabel">Page 1</div>
+            <button id="nextPage" class="ghost">Next</button>
+          </div>
+
+          <div class="actions">
+            <button id="savePage" class="ghost">Save progress</button>
+            <button id="submitQuiz" class="primary">Submit participant</button>
+          </div>
+        </section>
+
+        <section id="results" class="card" hidden>
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Step 3</p>
+              <h2>Results & Report</h2>
+            </div>
+            <div class="pill">Summary</div>
+          </div>
+          <div class="results__grid">
+            <div>
+              <h3>Captured JSON</h3>
+              <pre id="jsonOutput" class="code"></pre>
+              <button id="downloadJson" class="ghost">Download JSON</button>
+            </div>
+            <div>
+              <h3>Gemini Report</h3>
+              <div id="reportStatus" class="hint"></div>
+              <article id="reportOutput" class="report"></article>
+            </div>
+          </div>
+        </section>
+      </main>
+      <footer class="footer">
+        <p>Built for deep conversations about what matters most. Powered by Gemini.</p>
+      </footer>
+    </div>
+
+    <script type="module" src="values.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
