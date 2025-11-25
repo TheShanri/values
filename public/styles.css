@@ -455,25 +455,25 @@ button:focus-visible {
 
 .option--indifferent {
   background: linear-gradient(135deg, rgba(123, 123, 144, 0.18), rgba(123, 123, 144, 0.08));
-  color: #e6e6f0;
+  color: #fdfcff;
   border-color: rgba(123, 123, 144, 0.5);
 }
 
 .option--valued {
   background: linear-gradient(135deg, rgba(59, 226, 134, 0.24), rgba(59, 226, 134, 0.12));
-  color: #021610;
+  color: #ffffff;
   border-color: rgba(59, 226, 134, 0.7);
 }
 
 .option--highly {
   background: linear-gradient(135deg, rgba(91, 167, 255, 0.22), rgba(91, 167, 255, 0.12));
-  color: #031021;
+  color: #f7fbff;
   border-color: rgba(91, 167, 255, 0.7);
 }
 
 .option--critical {
   background: linear-gradient(135deg, rgba(177, 79, 255, 0.24), rgba(177, 79, 255, 0.14));
-  color: #120420;
+  color: #fff7ff;
   border-color: rgba(177, 79, 255, 0.75);
 }
 
