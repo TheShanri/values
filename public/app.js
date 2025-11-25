@@ -44,6 +44,7 @@ const dom = {
   reportOutput: document.querySelector('#reportOutput'),
   reportStatus: document.querySelector('#reportStatus'),
   downloadJson: document.querySelector('#downloadJson'),
+  downloadErrorLog: document.querySelector('#downloadErrorLog'),
 };
 
 const state = {
@@ -57,6 +58,7 @@ const state = {
   currentParticipant: 1,
   currentStep: 1,
   relationshipType: 'partner',
+  lastErrorLog: '',
 };
 
 function subsetValues() {
@@ -107,6 +109,18 @@ function toggleChip(group, value) {
   group.querySelectorAll('.chip').forEach((chip) => {
     chip.classList.toggle('selected', chip.dataset.length === value || chip.dataset.mode === value);
   });
+}
+
+function toggleCustomGender(selectEl, inputEl) {
+  const shouldShow = selectEl.value === 'Self-described';
+  inputEl.hidden = !shouldShow;
+  if (!shouldShow) inputEl.value = '';
+}
+
+function toggleCustomRelationship() {
+  const shouldShow = dom.relationship.value === 'other';
+  dom.customRelationship.hidden = !shouldShow;
+  if (!shouldShow) dom.customRelationship.value = '';
 }
 
 function renderTable() {
@@ -265,28 +279,69 @@ async function finalize() {
   dom.resultsCard.hidden = false;
   dom.reportStatus.textContent = 'Requesting Gemini report...';
   dom.reportOutput.textContent = '';
+  dom.downloadErrorLog.hidden = true;
+  state.lastErrorLog = '';
+
+  const requestPayload = {
+    participants: state.participants,
+    mode: state.mode,
+    relationshipType: state.relationshipType,
+  };
 
   try {
     const response = await fetch('/api/report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        participants: state.participants,
-        mode: state.mode,
-        relationshipType: state.relationshipType,
-      }),
+      body: JSON.stringify(requestPayload),
     });
 
-    if (!response.ok) throw new Error('Unable to reach the report service.');
-    const data = await response.json();
+    const rawText = await response.text();
+
+    if (!response.ok) {
+      let serviceMessage = rawText;
+      try {
+        const parsed = JSON.parse(rawText || '{}');
+        serviceMessage = parsed?.error?.message || parsed?.text || rawText || 'Unknown error';
+      } catch (err) {
+        serviceMessage = rawText || 'Unknown error';
+      }
+      state.lastErrorLog = buildErrorLog({
+        stage: 'report_service_error',
+        status: response.status,
+        statusText: response.statusText,
+        body: rawText,
+        payload: requestPayload,
+      });
+      throw new Error(`Report service error (${response.status} ${response.statusText}): ${serviceMessage}`);
+    }
+
+    const data = JSON.parse(rawText || '{}');
     dom.reportStatus.textContent = data.usedGemini
       ? 'Gemini response ready.'
       : 'Preview shown because Gemini key was missing or unreachable.';
     dom.reportOutput.innerHTML = formatReport(data.text);
   } catch (error) {
-    dom.reportStatus.textContent = 'Report failed.';
-    dom.reportOutput.textContent = error.message;
+    if (!state.lastErrorLog) {
+      state.lastErrorLog = buildErrorLog({ stage: 'request_failed', error, payload: requestPayload });
+    }
+    dom.reportStatus.textContent = 'Report failed. Please retry after reviewing the log.';
+    dom.reportOutput.innerHTML = `<p>${error.message}</p><p>If the issue persists, share the downloaded log with support.</p>`;
+    dom.downloadErrorLog.hidden = false;
   }
+}
+
+function buildErrorLog({ stage, payload, status, statusText, body, error }) {
+  const timestamp = new Date().toISOString();
+  return [
+    `Timestamp: ${timestamp}`,
+    `Stage: ${stage}`,
+    status ? `Status: ${status} ${statusText || ''}`.trim() : null,
+    payload ? `Payload: ${JSON.stringify(payload, null, 2)}` : null,
+    body ? `Body: ${body}` : null,
+    error ? `Error: ${error.message}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function formatReport(text) {
@@ -317,6 +372,20 @@ function downloadJson() {
   URL.revokeObjectURL(url);
 }
 
+function downloadErrorLog() {
+  if (!state.lastErrorLog) {
+    alert('No error log is available yet. Trigger a report first.');
+    return;
+  }
+  const blob = new Blob([state.lastErrorLog], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'values-report-error.log';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 dom.startBtn.addEventListener('click', () => {
   setStep(1);
 });
@@ -342,7 +411,15 @@ dom.modeChips.addEventListener('click', (e) => {
   dom.relationshipField.hidden = !isPaired;
   dom.partnerFields.hidden = !isPaired;
   dom.name2.required = isPaired;
+  if (!isPaired) {
+    dom.relationship.value = 'partner';
+    toggleCustomRelationship();
+  }
 });
+
+dom.gender.addEventListener('change', () => toggleCustomGender(dom.gender, dom.customGender));
+dom.gender2.addEventListener('change', () => toggleCustomGender(dom.gender2, dom.customGender2));
+dom.relationship.addEventListener('change', toggleCustomRelationship);
 
 dom.prevPage.addEventListener('click', () => {
   if (state.currentPage === 1) return;
@@ -361,6 +438,7 @@ dom.nextPage.addEventListener('click', () => {
 });
 
 dom.downloadJson.addEventListener('click', downloadJson);
+dom.downloadErrorLog.addEventListener('click', downloadErrorLog);
 
 dom.toQuiz.addEventListener('click', () => {
   if (prepareProfiles()) {
@@ -378,5 +456,8 @@ toggleChip(dom.modeChips, state.mode);
 dom.relationshipField.hidden = true;
 dom.partnerFields.hidden = true;
 dom.name2.required = false;
+toggleCustomGender(dom.gender, dom.customGender);
+toggleCustomGender(dom.gender2, dom.customGender2);
+toggleCustomRelationship();
 updateValues();
 setStep(1);

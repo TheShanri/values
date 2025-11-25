@@ -329,29 +329,29 @@ button:focus-visible {
 
 .option--indifferent {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(232, 232, 255, 0.08));
-  color: var(--muted);
+  color: #e3e1ee;
 }
 
 .option--valued {
-  background: linear-gradient(135deg, rgba(61, 225, 255, 0.18), rgba(61, 225, 255, 0.08));
-  color: #0b1a23;
-  border-color: rgba(61, 225, 255, 0.6);
+  background: linear-gradient(135deg, #2dd4bf, #0ea5e9);
+  color: #041321;
+  border-color: #38bdf8;
 }
 
 .option--highly {
-  background: linear-gradient(135deg, rgba(177, 79, 255, 0.22), rgba(177, 79, 255, 0.12));
-  color: #10051e;
-  border-color: rgba(177, 79, 255, 0.6);
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  color: #0f0827;
+  border-color: #c084fc;
 }
 
 .option--critical {
-  background: linear-gradient(135deg, rgba(255, 122, 231, 0.22), rgba(255, 122, 231, 0.1));
-  color: #1e0a18;
-  border-color: rgba(255, 122, 231, 0.6);
+  background: linear-gradient(135deg, #f59e0b, #facc15);
+  color: #2f1900;
+  border-color: #fbbf24;
 }
 
 .option--selected {
-  box-shadow: 0 10px 30px rgba(255, 122, 231, 0.25);
+  box-shadow: 0 10px 30px rgba(56, 189, 248, 0.25);
   transform: translateY(-1px);
 }
 
@@ -425,6 +425,11 @@ button:focus-visible {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+
+#downloadJson,
+#downloadErrorLog {
+  margin-top: 10px;
 }
 
 .footer {

@@ -48,6 +48,13 @@
             <div class="pill">Bio & Preferences</div>
           </div>
           <form id="bioForm" class="grid">
+            <div class="field">
+              <label>Report type</label>
+              <div class="chip-group" id="modeChips">
+                <button type="button" data-mode="solo" class="chip selected">Solo</button>
+                <button type="button" data-mode="paired" class="chip">Paired</button>
+              </div>
+            </div>
             <div class="fieldset">
               <div class="legend">Participant 1</div>
               <div class="field">
@@ -78,6 +85,7 @@
                   class="mt-8"
                   type="text"
                   placeholder="If self-described, share here"
+                  hidden
                 />
               </div>
             </div>
@@ -112,8 +120,25 @@
                   class="mt-8"
                   type="text"
                   placeholder="If self-described, share here"
+                  hidden
                 />
               </div>
+            </div>
+            <div class="field" id="relationshipField" hidden>
+              <label for="relationship">Relationship focus</label>
+              <select id="relationship" name="relationship">
+                <option value="partner">Partner</option>
+                <option value="friend">Friend</option>
+                <option value="parent">Parent</option>
+                <option value="other">Other</option>
+              </select>
+              <input
+                id="customRelationship"
+                class="mt-8"
+                type="text"
+                placeholder="Describe the relationship"
+                hidden
+              />
             </div>
 
             <div class="field">
@@ -126,23 +151,6 @@
                 <button type="button" data-length="full" class="chip">In-depth (10+ mins)</button>
               </div>
               <p class="hint">Quick shows 50 values, moderate 125, full all 175.</p>
-            </div>
-            <div class="field">
-              <label>Report type</label>
-              <div class="chip-group" id="modeChips">
-                <button type="button" data-mode="solo" class="chip selected">Solo</button>
-                <button type="button" data-mode="paired" class="chip">Paired</button>
-              </div>
-            </div>
-            <div class="field" id="relationshipField" hidden>
-              <label for="relationship">Relationship focus</label>
-              <select id="relationship" name="relationship">
-                <option value="partner">Partner</option>
-                <option value="friend">Friend</option>
-                <option value="parent">Parent</option>
-                <option value="other">Other</option>
-              </select>
-              <input id="customRelationship" class="mt-8" type="text" placeholder="Describe the relationship" />
             </div>
           </form>
 
@@ -197,6 +205,7 @@
               <h3>Gemini Report</h3>
               <div id="reportStatus" class="hint"></div>
               <article id="reportOutput" class="report"></article>
+              <button id="downloadErrorLog" class="ghost" hidden>Download error log</button>
             </div>
           </div>
         </section>
