@@ -2,17 +2,33 @@ import { valuesData } from './values.js';
 
 const PAGE_SIZE = 10;
 const answerOptions = ['Indifferent', 'Valued', 'Highly Valued', 'Critical'];
+const optionClasses = {
+  Indifferent: 'option--indifferent',
+  Valued: 'option--valued',
+  'Highly Valued': 'option--highly',
+  Critical: 'option--critical',
+};
 
 const dom = {
   startBtn: document.querySelector('#startBtn'),
   scrollToValues: document.querySelector('#scrollToValues'),
   bioForm: document.querySelector('#bioForm'),
+  setupCard: document.querySelector('#setup'),
+  quizCard: document.querySelector('#quiz'),
   lengthChips: document.querySelector('#lengthChips'),
   modeChips: document.querySelector('#modeChips'),
   relationshipField: document.querySelector('#relationshipField'),
   relationship: document.querySelector('#relationship'),
   customRelationship: document.querySelector('#customRelationship'),
   customGender: document.querySelector('#customGender'),
+  name: document.querySelector('#name'),
+  age: document.querySelector('#age'),
+  gender: document.querySelector('#gender'),
+  name2: document.querySelector('#name2'),
+  age2: document.querySelector('#age2'),
+  gender2: document.querySelector('#gender2'),
+  customGender2: document.querySelector('#customGender2'),
+  partnerFields: document.querySelector('#partnerFields'),
   progressBar: document.querySelector('#progressBar'),
   progressCount: document.querySelector('#progressCount'),
   progressTotal: document.querySelector('#progressTotal'),
@@ -20,8 +36,8 @@ const dom = {
   prevPage: document.querySelector('#prevPage'),
   nextPage: document.querySelector('#nextPage'),
   pageLabel: document.querySelector('#pageLabel'),
-  savePage: document.querySelector('#savePage'),
-  submitQuiz: document.querySelector('#submitQuiz'),
+  toQuiz: document.querySelector('#toQuiz'),
+  backToBio: document.querySelector('#backToBio'),
   participantBadge: document.querySelector('#participantBadge'),
   resultsCard: document.querySelector('#results'),
   jsonOutput: document.querySelector('#jsonOutput'),
@@ -37,6 +53,10 @@ const state = {
   currentPage: 1,
   answers: {},
   participants: [],
+  profiles: {},
+  currentParticipant: 1,
+  currentStep: 1,
+  relationshipType: 'partner',
 };
 
 function subsetValues() {
@@ -55,6 +75,17 @@ function updateValues(preserveAnswers = false) {
   dom.progressTotal.textContent = state.values.length;
   renderTable();
   updateProgress();
+  updatePaginationControls();
+}
+
+function setStep(step) {
+  state.currentStep = step;
+  dom.setupCard.classList.toggle('step-hidden', step !== 1);
+  dom.quizCard.classList.toggle('step-hidden', step !== 2);
+  dom.resultsCard.classList.toggle('step-hidden', step !== 3);
+  dom.resultsCard.hidden = step !== 3;
+  const target = step === 1 ? dom.setupCard : step === 2 ? dom.quizCard : dom.resultsCard;
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function updateProgress() {
@@ -62,6 +93,14 @@ function updateProgress() {
   dom.progressCount.textContent = answered;
   const pct = Math.round((answered / state.values.length) * 100) || 0;
   dom.progressBar.style.width = `${pct}%`;
+}
+
+function updatePaginationControls() {
+  const totalPages = Math.ceil(state.values.length / PAGE_SIZE) || 1;
+  dom.pageLabel.textContent = `Page ${state.currentPage} / ${totalPages}`;
+  dom.prevPage.disabled = state.currentPage === 1;
+  const isLastPage = state.currentPage === totalPages;
+  dom.nextPage.textContent = isLastPage ? 'Submit participant' : 'Next';
 }
 
 function toggleChip(group, value) {
@@ -85,11 +124,6 @@ function renderTable() {
     const controls = document.createElement('div');
     controls.className = 'table__controls';
 
-    const defaults = document.createElement('div');
-    defaults.className = 'hint';
-    defaults.textContent = `Suggested: ${value.personalTake}`;
-    controls.appendChild(defaults);
-
     const options = document.createElement('div');
     options.className = 'table__options';
 
@@ -97,11 +131,11 @@ function renderTable() {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.textContent = option;
-      btn.className = 'ghost';
+      btn.className = `ghost ${optionClasses[option]}`;
       btn.dataset.id = value.id;
       btn.dataset.answer = option;
-      if (state.answers[value.id] === option || (!state.answers[value.id] && value.personalTake === option)) {
-        btn.classList.add('selected');
+      if (state.answers[value.id] === option) {
+        btn.classList.add('option--selected');
       }
       btn.addEventListener('click', () => {
         state.answers[value.id] = option;
@@ -117,67 +151,67 @@ function renderTable() {
     dom.tableContainer.appendChild(row);
   });
 
-  const totalPages = Math.ceil(state.values.length / PAGE_SIZE) || 1;
-  dom.pageLabel.textContent = `Page ${state.currentPage} / ${totalPages}`;
-  dom.prevPage.disabled = state.currentPage === 1;
-  dom.nextPage.disabled = state.currentPage === totalPages;
+  updatePaginationControls();
 }
 
-function persistPage() {
-  const data = {
-    mode: state.mode,
-    length: state.length,
-    answers: state.answers,
-    currentPage: state.currentPage,
-  };
-  localStorage.setItem('values-progress', JSON.stringify(data));
-  alert('Progress saved locally for this browser.');
-}
+function buildProfile(prefix = '') {
+  const nameField = prefix === '2' ? dom.name2 : dom.name;
+  const ageField = prefix === '2' ? dom.age2 : dom.age;
+  const genderField = prefix === '2' ? dom.gender2 : dom.gender;
+  const customGenderField = prefix === '2' ? dom.customGender2 : dom.customGender;
 
-function loadPersisted() {
-  const saved = localStorage.getItem('values-progress');
-  if (!saved) return;
-  try {
-    const data = JSON.parse(saved);
-    if (data.mode) state.mode = data.mode;
-    if (data.length) state.length = data.length;
-    if (data.answers) state.answers = data.answers;
-    if (data.currentPage) state.currentPage = data.currentPage;
-    toggleChip(dom.lengthChips, state.length);
-    toggleChip(dom.modeChips, state.mode);
-    dom.relationshipField.hidden = state.mode !== 'paired';
-    updateValues(true);
-  } catch (e) {
-    console.warn('Unable to parse saved progress', e);
-  }
-}
-
-function collectProfile(participantNumber) {
-  const formData = new FormData(dom.bioForm);
-  const name = formData.get('name')?.trim();
+  const name = nameField?.value?.trim();
   if (!name) {
-    alert('Please enter a name before continuing.');
+    alert(`Please enter a name for ${prefix === '2' ? 'participant 2' : 'participant 1'}.`);
     return null;
   }
+
   const profile = { name };
-  const age = formData.get('age');
+  const age = ageField?.value;
   if (age) profile.age = age;
 
-  const gender = formData.get('gender');
-  const customGender = dom.customGender.value.trim();
+  const gender = genderField?.value;
+  const customGender = customGenderField?.value?.trim();
   if (gender === 'Self-described' && customGender) {
     profile.gender = customGender;
   } else if (gender) {
     profile.gender = gender;
   }
 
-  if (state.mode === 'paired' && participantNumber === 2) {
-    const rel = dom.relationship.value;
-    const customRel = dom.customRelationship.value.trim();
-    profile.relationship = rel === 'other' && customRel ? customRel : rel;
+  return profile;
+}
+
+function prepareProfiles() {
+  const primary = buildProfile();
+  if (!primary) return false;
+
+  let secondary = null;
+  if (state.mode === 'paired') {
+    secondary = buildProfile('2');
+    if (!secondary) return false;
   }
 
-  return profile;
+  if (state.mode === 'paired') {
+    const rel = dom.relationship.value;
+    const customRel = dom.customRelationship.value.trim();
+    state.relationshipType = rel === 'other' && customRel ? customRel : rel;
+  } else {
+    state.relationshipType = 'solo';
+  }
+
+  state.profiles = { 1: primary };
+  if (secondary) state.profiles[2] = secondary;
+  state.participants = [];
+  state.currentParticipant = 1;
+  state.answers = {};
+  state.currentPage = 1;
+  dom.participantBadge.textContent = secondary
+    ? `Participant 1 - ${primary.name}`
+    : `Participant 1 - ${primary.name}`;
+  renderTable();
+  updateProgress();
+  updatePaginationControls();
+  return true;
 }
 
 function gatherResponses() {
@@ -185,45 +219,41 @@ function gatherResponses() {
     id: v.id,
     value: v.name,
     description: v.description,
-    answer: state.answers[v.id] || v.personalTake,
+    answer: state.answers[v.id] || 'Unrated',
   }));
   return responses;
 }
 
 async function submitParticipant() {
-  const profile = collectProfile(state.participants.length + 1);
-  if (!profile) return;
-
-  if (Object.keys(state.answers).length === 0) {
-    const proceed = confirm('You have not provided any custom ratings. Proceed with suggested ratings?');
-    if (!proceed) return;
+  const profile = state.profiles[state.currentParticipant];
+  if (!profile) {
+    alert('Please complete Step 1 to confirm participant info.');
+    return;
   }
 
   state.participants.push({ profile, responses: gatherResponses() });
 
-  if (state.mode === 'paired' && state.participants.length === 1) {
-    alert('First participant saved. Please enter details for the second person.');
-    state.currentPage = 1;
+  if (state.mode === 'paired' && state.currentParticipant === 1) {
+    state.currentParticipant = 2;
     state.answers = {};
-    dom.participantBadge.textContent = 'Participant 2';
-    dom.bioForm.reset();
-    toggleChip(dom.lengthChips, state.length);
-    toggleChip(dom.modeChips, state.mode);
-    dom.customGender.value = '';
-    dom.relationshipField.hidden = false;
+    state.currentPage = 1;
+    dom.participantBadge.textContent = `Participant 2 - ${state.profiles[2].name}`;
     renderTable();
     updateProgress();
+    updatePaginationControls();
+    alert('Participant 1 captured. Please rate the same values for Participant 2.');
     return;
   }
 
   await finalize();
+  setStep(3);
 }
 
 function renderJson(participants) {
   const modeLabel = state.mode;
   const payload = {
     mode: modeLabel,
-    relationship: dom.customRelationship.value.trim() || dom.relationship.value,
+    relationship: state.relationshipType,
     quizLength: state.length,
     participants,
   };
@@ -243,7 +273,7 @@ async function finalize() {
       body: JSON.stringify({
         participants: state.participants,
         mode: state.mode,
-        relationshipType: dom.customRelationship.value.trim() || dom.relationship.value,
+        relationshipType: state.relationshipType,
       }),
     });
 
@@ -288,11 +318,11 @@ function downloadJson() {
 }
 
 dom.startBtn.addEventListener('click', () => {
-  document.querySelector('#setup').scrollIntoView({ behavior: 'smooth' });
+  setStep(1);
 });
 
 dom.scrollToValues.addEventListener('click', () => {
-  document.querySelector('#quiz').scrollIntoView({ behavior: 'smooth' });
+  setStep(1);
 });
 
 dom.lengthChips.addEventListener('click', (e) => {
@@ -308,7 +338,10 @@ dom.modeChips.addEventListener('click', (e) => {
   if (!btn) return;
   state.mode = btn.dataset.mode;
   toggleChip(dom.modeChips, state.mode);
-  dom.relationshipField.hidden = state.mode !== 'paired';
+  const isPaired = state.mode === 'paired';
+  dom.relationshipField.hidden = !isPaired;
+  dom.partnerFields.hidden = !isPaired;
+  dom.name2.required = isPaired;
 });
 
 dom.prevPage.addEventListener('click', () => {
@@ -319,18 +352,31 @@ dom.prevPage.addEventListener('click', () => {
 
 dom.nextPage.addEventListener('click', () => {
   const totalPages = Math.ceil(state.values.length / PAGE_SIZE);
-  if (state.currentPage >= totalPages) return;
+  if (state.currentPage >= totalPages) {
+    submitParticipant();
+    return;
+  }
   state.currentPage += 1;
   renderTable();
 });
 
-dom.savePage.addEventListener('click', persistPage);
-
-dom.submitQuiz.addEventListener('click', submitParticipant);
-
 dom.downloadJson.addEventListener('click', downloadJson);
 
+dom.toQuiz.addEventListener('click', () => {
+  if (prepareProfiles()) {
+    setStep(2);
+  }
+});
+
+dom.backToBio.addEventListener('click', () => {
+  setStep(1);
+});
+
 // Initialize
-dom.progressTotal.textContent = subsetValues().length;
-loadPersisted();
-if (!state.values.length) updateValues();
+toggleChip(dom.lengthChips, state.length);
+toggleChip(dom.modeChips, state.mode);
+dom.relationshipField.hidden = true;
+dom.partnerFields.hidden = true;
+dom.name2.required = false;
+updateValues();
+setStep(1);

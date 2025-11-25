@@ -170,6 +170,19 @@ body {
   gap: 14px 16px;
 }
 
+.fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.legend {
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--accent-2);
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -252,6 +265,12 @@ button:focus-visible {
   box-shadow: 0 8px 30px rgba(61, 225, 255, 0.2);
 }
 
+.wizard-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
 .primary:hover,
 .ghost:hover,
 .chip:hover {
@@ -296,8 +315,44 @@ button:focus-visible {
 
 .table__options {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.table__options button {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 700;
+}
+
+.option--indifferent {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(232, 232, 255, 0.08));
+  color: var(--muted);
+}
+
+.option--valued {
+  background: linear-gradient(135deg, rgba(61, 225, 255, 0.18), rgba(61, 225, 255, 0.08));
+  color: #0b1a23;
+  border-color: rgba(61, 225, 255, 0.6);
+}
+
+.option--highly {
+  background: linear-gradient(135deg, rgba(177, 79, 255, 0.22), rgba(177, 79, 255, 0.12));
+  color: #10051e;
+  border-color: rgba(177, 79, 255, 0.6);
+}
+
+.option--critical {
+  background: linear-gradient(135deg, rgba(255, 122, 231, 0.22), rgba(255, 122, 231, 0.1));
+  color: #1e0a18;
+  border-color: rgba(255, 122, 231, 0.6);
+}
+
+.option--selected {
+  box-shadow: 0 10px 30px rgba(255, 122, 231, 0.25);
+  transform: translateY(-1px);
 }
 
 .badge {
@@ -333,13 +388,16 @@ button:focus-visible {
   margin-top: 6px;
 }
 
-.pagination,
-.actions {
+.pagination {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
   margin-top: 12px;
+}
+
+.step-hidden {
+  display: none;
 }
 
 .code {
