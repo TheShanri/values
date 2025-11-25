@@ -85,18 +85,16 @@ function renderParticipants(participants = []) {
   return grid;
 }
 
-function renderLinks(links = []) {
-  if (!links.length) return null;
+function renderLinks() {
   const row = document.createElement('div');
   row.className = 'link-row';
-  row.innerHTML = '<strong>Sources:</strong>';
-  links.forEach((link) => {
-    const a = document.createElement('a');
-    a.href = link.url;
-    a.textContent = link.label || link.url;
-    a.target = '_blank';
-    row.appendChild(a);
-  });
+  row.innerHTML = '<strong>Further reading:</strong>';
+
+  const aboutLink = document.createElement('a');
+  aboutLink.href = '/about.html';
+  aboutLink.textContent = 'About this project';
+  row.appendChild(aboutLink);
+
   return row;
 }
 
@@ -176,13 +174,11 @@ function renderReport(data) {
     container.appendChild(createCard('Inspirations', '💫', body));
   }
 
-  if (data.links?.length) {
-    const row = renderLinks(data.links);
-    if (row) {
-      const body = document.createElement('div');
-      body.appendChild(row);
-      container.appendChild(createCard('Further reading', '🔗', body));
-    }
+  const linksRow = renderLinks();
+  if (linksRow) {
+    const body = document.createElement('div');
+    body.appendChild(linksRow);
+    container.appendChild(createCard('Further reading', '🔗', body));
   }
 }
 
