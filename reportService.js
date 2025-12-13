@@ -131,7 +131,7 @@ function buildPrompt({ participants, mode, relationshipType }) {
     ? "Here is a single person's values profile. Create an encouraging, strengths-based character review."
     : `Here are two people and their stated relationship (${label}). Create a character review for each, then provide a comparison section that highlights harmony and tension points.`;
   const emphasisNote =
-    'When writing, explicitly reference the exact values and ratings the user selected. Call out at least five values marked as Critical or Highly Valued for each person so the reader can see their choices reflected back.';
+    'CRITICAL INSTRUCTION: Do not use vague horoscope language. Every claim you make must be directly tied to a specific value the user selected. If you say they are "bold," you must cite that they rated "Boldness" as Critical. Avoid "Barnum statements" that could apply to anyone.';
 
   const summaries = participants
     .map((p, idx) => {
@@ -178,7 +178,10 @@ async function generateReport({ participants, mode, relationshipType }) {
             parts: [{ text: prompt }],
           },
         ],
-        generationConfig: { temperature: 0.7 },
+        generationConfig: {
+          temperature: 0.4,
+          responseMimeType: 'application/json',
+        },
       }),
       signal: controller.signal,
     });
@@ -214,7 +217,13 @@ async function respondWithReport(res, payload) {
 
   const report = await generateReport(payload);
   if (!report.report) {
-    report.report = buildLocalFallback(payload);
+    sendJson(res, 500, {
+      error: {
+        code: 'ai_generation_failed',
+        message: 'The oracle is silent. AI generation failed or returned invalid data. Please try again.',
+      },
+    });
+    return;
   }
   sendJson(res, 200, report);
 }

@@ -472,6 +472,7 @@ async function finalize() {
   dom.resultsCard.hidden = false;
   dom.reportStatus.textContent = 'Requesting Gemini report...';
   dom.reportOutput.textContent = '';
+  dom.reportOutput.classList.remove('report--error');
 
   try {
     const response = await fetch('/api/report', {
@@ -485,7 +486,16 @@ async function finalize() {
       }),
     });
 
-    if (!response.ok) throw new Error('Unable to reach the report service.');
+    if (!response.ok) {
+      let errorMessage = 'Unable to reach the report service.';
+      try {
+        const errorBody = await response.json();
+        errorMessage = errorBody?.error?.message || errorMessage;
+      } catch (parseError) {
+        errorMessage = `${errorMessage} (${response.statusText || 'Unknown error'})`;
+      }
+      throw new Error(errorMessage);
+    }
     const data = await response.json();
     if (data.report) {
       dom.reportStatus.textContent = data.usedGemini
@@ -514,6 +524,7 @@ async function finalize() {
   } catch (error) {
     dom.reportStatus.textContent = 'Report failed.';
     dom.reportOutput.textContent = error.message;
+    dom.reportOutput.classList.add('report--error');
   } finally {
     setLoading(false);
     dom.nextPage.disabled = false;
