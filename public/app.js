@@ -48,6 +48,9 @@ const dom = {
   loadingOverlay: document.querySelector('#loadingOverlay'),
   loadingTitle: document.querySelector('#loadingTitle'),
   loadingSubtitle: document.querySelector('#loadingSubtitle'),
+  resumeModal: document.querySelector('#resumeModal'),
+  resumeQuiz: document.querySelector('#resumeQuiz'),
+  startOver: document.querySelector('#startOver'),
 };
 
 const state = {
@@ -63,6 +66,9 @@ const state = {
   relationshipType: 'partner',
   toastTimer: null,
 };
+
+const STORAGE_KEY = 'valuesQuizProgress';
+let pendingResumeData = null;
 
 function showToast(message) {
   clearTimeout(state.toastTimer);
@@ -80,6 +86,145 @@ function setLoading(isLoading, title = 'Evaluating values…', subtitle = 'Hold 
   dom.loadingSubtitle.textContent = subtitle;
   dom.loadingOverlay.hidden = !isLoading;
   dom.loadingOverlay.classList.toggle('visible', isLoading);
+}
+
+function getFormValuesSnapshot() {
+  return {
+    name: dom.name.value,
+    age: dom.age.value,
+    gender: dom.gender.value,
+    customGender: dom.customGender.value,
+    name2: dom.name2.value,
+    age2: dom.age2.value,
+    gender2: dom.gender2.value,
+    customGender2: dom.customGender2.value,
+    relationship: dom.relationship.value,
+    customRelationship: dom.customRelationship.value,
+  };
+}
+
+function applyFormValues(snapshot = {}) {
+  dom.name.value = snapshot.name || '';
+  dom.age.value = snapshot.age || '';
+  dom.gender.value = snapshot.gender || '';
+  dom.customGender.value = snapshot.customGender || '';
+  dom.name2.value = snapshot.name2 || '';
+  dom.age2.value = snapshot.age2 || '';
+  dom.gender2.value = snapshot.gender2 || '';
+  dom.customGender2.value = snapshot.customGender2 || '';
+  dom.relationship.value = snapshot.relationship || 'partner';
+  dom.customRelationship.value = snapshot.customRelationship || '';
+}
+
+function persistProgress() {
+  const hasProgress = state.currentStep > 1 || Object.keys(state.answers).length > 0 || state.participants.length > 0;
+  if (!hasProgress) return;
+
+  const payload = {
+    answers: state.answers,
+    currentPage: state.currentPage,
+    currentStep: state.currentStep,
+    currentParticipant: state.currentParticipant,
+    profiles: state.profiles,
+    participants: state.participants,
+    relationshipType: state.relationshipType,
+    length: state.length,
+    mode: state.mode,
+    formValues: getFormValuesSnapshot(),
+  };
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function clearSavedProgress() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+function loadSavedProgress() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch (error) {
+    clearSavedProgress();
+    return null;
+  }
+}
+
+function hasSavedProgress(saved) {
+  if (!saved) return false;
+  const answered = saved.answers ? Object.keys(saved.answers).length : 0;
+  return answered > 0 || (saved.participants && saved.participants.length > 0);
+}
+
+function restoreProgress(saved) {
+  state.mode = saved.mode || state.mode;
+  state.length = saved.length || state.length;
+  toggleChip(dom.modeChips, state.mode);
+  toggleChip(dom.lengthChips, state.length);
+
+  const isPaired = state.mode === 'paired';
+  dom.relationshipField.hidden = !isPaired;
+  dom.relationshipField.classList.toggle('collapsed', !isPaired);
+  dom.partnerFields.hidden = !isPaired;
+  dom.name2.required = isPaired;
+
+  applyFormValues(saved.formValues);
+
+  state.relationshipType = saved.relationshipType || (isPaired ? dom.relationship.value : '');
+  state.profiles = saved.profiles || {};
+  state.participants = saved.participants || [];
+  state.currentParticipant = saved.currentParticipant || 1;
+  state.answers = saved.answers || {};
+  state.currentPage = saved.currentPage || 1;
+  state.currentStep = saved.currentStep || 2;
+
+  const totalPages = Math.ceil(subsetValues().length / PAGE_SIZE) || 1;
+  state.currentPage = Math.min(state.currentPage, totalPages);
+
+  updateValues(true);
+  const participantName = state.profiles[state.currentParticipant]?.name;
+  dom.participantBadge.textContent = participantName
+    ? `Participant ${state.currentParticipant} - ${participantName}`
+    : `Participant ${state.currentParticipant}`;
+  updateProgress();
+  updatePaginationControls();
+  setStep(state.currentStep);
+  persistProgress();
+}
+
+function resetToDefaults() {
+  state.mode = 'solo';
+  state.length = 'quick';
+  state.currentPage = 1;
+  state.answers = {};
+  state.participants = [];
+  state.profiles = {};
+  state.currentParticipant = 1;
+  state.relationshipType = 'partner';
+  state.currentStep = 1;
+
+  applyFormValues({ relationship: 'partner' });
+  toggleChip(dom.modeChips, state.mode);
+  toggleChip(dom.lengthChips, state.length);
+  dom.relationshipField.hidden = true;
+  dom.relationshipField.classList.add('collapsed');
+  dom.partnerFields.hidden = true;
+  dom.name2.required = false;
+  dom.participantBadge.textContent = 'Participant 1';
+
+  updateValues();
+  updateProgress();
+  updatePaginationControls();
+  setStep(1);
+}
+
+function promptResumeIfAvailable() {
+  const saved = loadSavedProgress();
+  if (!hasSavedProgress(saved)) return;
+
+  pendingResumeData = saved;
+  dom.resumeModal.hidden = false;
 }
 
 function scrollToQuizTop() {
@@ -195,6 +340,7 @@ function renderTable() {
         state.answers[value.id] = option;
         renderTable();
         updateProgress();
+        persistProgress();
       });
       options.appendChild(btn);
     });
@@ -287,6 +433,7 @@ async function submitParticipant() {
   }
 
   state.participants.push({ profile, responses: gatherResponses() });
+  persistProgress();
 
   if (state.mode === 'paired' && state.currentParticipant === 1) {
     state.currentParticipant = 2;
@@ -297,6 +444,7 @@ async function submitParticipant() {
     updateProgress();
     updatePaginationControls();
     showToast('Participant 1 captured. Now rate the same values for Participant 2.');
+    persistProgress();
     return;
   }
 
@@ -316,6 +464,7 @@ function renderJson(participants) {
 }
 
 async function finalize() {
+  clearSavedProgress();
   setLoading(true);
   dom.nextPage.disabled = true;
   dom.prevPage.disabled = true;
@@ -437,6 +586,7 @@ dom.prevPage.addEventListener('click', () => {
   state.currentPage -= 1;
   renderTable();
   scrollToQuizTop();
+  persistProgress();
 });
 
 dom.nextPage.addEventListener('click', () => {
@@ -449,6 +599,7 @@ dom.nextPage.addEventListener('click', () => {
   state.currentPage += 1;
   renderTable();
   scrollToQuizTop();
+  persistProgress();
 });
 
 dom.downloadJson.addEventListener('click', downloadJson);
@@ -456,11 +607,27 @@ dom.downloadJson.addEventListener('click', downloadJson);
 dom.toQuiz.addEventListener('click', () => {
   if (prepareProfiles()) {
     setStep(2);
+    persistProgress();
   }
 });
 
 dom.backToBio.addEventListener('click', () => {
   setStep(1);
+});
+
+dom.resumeQuiz.addEventListener('click', () => {
+  if (pendingResumeData) {
+    restoreProgress(pendingResumeData);
+    pendingResumeData = null;
+  }
+  dom.resumeModal.hidden = true;
+});
+
+dom.startOver.addEventListener('click', () => {
+  clearSavedProgress();
+  pendingResumeData = null;
+  resetToDefaults();
+  dom.resumeModal.hidden = true;
 });
 
 // Initialize
@@ -472,3 +639,4 @@ dom.partnerFields.hidden = true;
 dom.name2.required = false;
 updateValues();
 setStep(1);
+promptResumeIfAvailable();
