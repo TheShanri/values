@@ -221,6 +221,7 @@ async function respondWithReport(res, payload) {
       error: {
         code: 'ai_generation_failed',
         message: 'The oracle is silent. AI generation failed or returned invalid data. Please try again.',
+        debug: report,
       },
     });
     return;

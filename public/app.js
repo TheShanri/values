@@ -552,13 +552,17 @@ async function finalize() {
 
     if (!response.ok) {
       let errorMessage = 'Unable to reach the report service.';
+      let debugData = null;
       try {
         const errorBody = await response.json();
         errorMessage = errorBody?.error?.message || errorMessage;
+        debugData = errorBody?.error?.debug;
       } catch (parseError) {
         errorMessage = `${errorMessage} (${response.statusText || 'Unknown error'})`;
       }
-      throw new Error(errorMessage);
+      const err = new Error(errorMessage);
+      err.debugData = debugData;
+      throw err;
     }
     const data = await response.json();
     if (data.report) {
@@ -587,8 +591,27 @@ async function finalize() {
     dom.reportOutput.innerHTML = formatReport(data.text || '');
   } catch (error) {
     dom.reportStatus.textContent = 'Report failed.';
-    dom.reportOutput.textContent = error.message;
+    dom.reportOutput.innerHTML = `<p>${error.message}</p>`;
     dom.reportOutput.classList.add('report--error');
+
+    if (error.debugData) {
+      const debugBtn = document.createElement('button');
+      debugBtn.textContent = 'Download Debug Log';
+      debugBtn.className = 'ghost mt-8';
+      debugBtn.style.width = '100%';
+      debugBtn.onclick = () => {
+        const blob = new Blob([JSON.stringify(error.debugData, null, 2)], {
+          type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'values-debug-log.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+      dom.reportOutput.appendChild(debugBtn);
+    }
   } finally {
     setLoading(false);
     dom.nextPage.disabled = false;
