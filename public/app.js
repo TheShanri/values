@@ -9,6 +9,8 @@ const optionClasses = {
   Critical: 'option--critical',
 };
 
+const compactControlsQuery = window.matchMedia('(max-width: 400px)');
+
 const dom = {
   startBtn: document.querySelector('#startBtn'),
   scrollToValues: document.querySelector('#scrollToValues'),
@@ -167,6 +169,7 @@ function renderTable() {
   const start = (state.currentPage - 1) * PAGE_SIZE;
   const pageValues = state.values.slice(start, start + PAGE_SIZE);
   dom.tableContainer.innerHTML = '';
+  const useCompactControls = compactControlsQuery.matches;
 
   pageValues.forEach((value) => {
     const row = document.createElement('div');
@@ -178,28 +181,60 @@ function renderTable() {
     const controls = document.createElement('div');
     controls.className = 'table__controls';
 
-    const options = document.createElement('div');
-    options.className = 'table__options';
+    if (useCompactControls) {
+      const select = document.createElement('select');
+      select.className = 'styled-select table__select';
+      select.ariaLabel = `Rate ${value.name}`;
 
-    answerOptions.forEach((option) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = option;
-      btn.className = `ghost ${optionClasses[option]}`;
-      btn.dataset.id = value.id;
-      btn.dataset.answer = option;
-      if (state.answers[value.id] === option) {
-        btn.classList.add('option--selected');
-      }
-      btn.addEventListener('click', () => {
-        state.answers[value.id] = option;
-        renderTable();
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Tap to rate';
+      select.appendChild(placeholder);
+
+      answerOptions.forEach((option) => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        select.appendChild(opt);
+      });
+
+      select.value = state.answers[value.id] || '';
+
+      select.addEventListener('change', (event) => {
+        const selected = event.target.value;
+        if (selected) {
+          state.answers[value.id] = selected;
+        } else {
+          delete state.answers[value.id];
+        }
         updateProgress();
       });
-      options.appendChild(btn);
-    });
 
-    controls.appendChild(options);
+      controls.appendChild(select);
+    } else {
+      const options = document.createElement('div');
+      options.className = 'table__options';
+
+      answerOptions.forEach((option) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = option;
+        btn.className = `ghost ${optionClasses[option]}`;
+        btn.dataset.id = value.id;
+        btn.dataset.answer = option;
+        if (state.answers[value.id] === option) {
+          btn.classList.add('option--selected');
+        }
+        btn.addEventListener('click', () => {
+          state.answers[value.id] = option;
+          renderTable();
+          updateProgress();
+        });
+        options.appendChild(btn);
+      });
+
+      controls.appendChild(options);
+    }
     row.appendChild(left);
     row.appendChild(controls);
     dom.tableContainer.appendChild(row);
@@ -461,6 +496,10 @@ dom.toQuiz.addEventListener('click', () => {
 
 dom.backToBio.addEventListener('click', () => {
   setStep(1);
+});
+
+compactControlsQuery.addEventListener('change', () => {
+  renderTable();
 });
 
 // Initialize
