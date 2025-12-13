@@ -9,7 +9,7 @@ const optionClasses = {
   Critical: 'option--critical',
 };
 
-const STORAGE_KEY = 'valuesQuizProgress';
+const compactControlsQuery = window.matchMedia('(max-width: 400px)');
 
 const dom = {
   startBtn: document.querySelector('#startBtn'),
@@ -69,7 +69,22 @@ const state = {
   toastTimer: null,
 };
 
-let pendingResumeData = null;
+function updateCustomRelationshipVisibility() {
+  const isOther = dom.relationship.value === 'other';
+  dom.customRelationship.hidden = !isOther;
+  if (!isOther) {
+    dom.customRelationship.value = '';
+  }
+}
+
+function toggleCustomGender(selectEl, inputEl) {
+  if (!selectEl || !inputEl) return;
+  const isSelfDescribed = selectEl.value === 'Self-described';
+  inputEl.hidden = !isSelfDescribed;
+  if (!isSelfDescribed) {
+    inputEl.value = '';
+  }
+}
 
 function showToast(message) {
   clearTimeout(state.toastTimer);
@@ -82,9 +97,73 @@ function showToast(message) {
   }, 2600);
 }
 
-function setLoading(isLoading, title = 'Evaluating values…', subtitle = 'Hold on while we prepare your report.') {
-  dom.loadingTitle.textContent = title;
-  dom.loadingSubtitle.textContent = subtitle;
+const loadingMessages = [
+  { title: 'Analyzing your stars…', subtitle: 'Plotting constellations of your core values.' },
+  { title: 'Consulting the philosophers…', subtitle: 'Socrates, Simone, and Seneca are on the case.' },
+  { title: 'Asking the algorithms nicely…', subtitle: 'Polishing every insight before it reaches you.' },
+  { title: 'Decoding your narrative…', subtitle: 'Weaving your answers into a story worth rereading.' },
+  { title: 'Brewing perspective…', subtitle: 'Steeping wisdom to the perfect temperature.' },
+];
+
+let loadingMessageIndex = 0;
+let loadingMessageTimer = null;
+let loadingTypingTimer = null;
+
+function stopLoadingMessages() {
+  clearInterval(loadingMessageTimer);
+  clearInterval(loadingTypingTimer);
+  loadingMessageTimer = null;
+  loadingTypingTimer = null;
+}
+
+function typeLoadingSubtitle(subtitle) {
+  clearInterval(loadingTypingTimer);
+  dom.loadingSubtitle.textContent = '';
+
+  if (!subtitle) return;
+
+  let charIndex = 0;
+  loadingTypingTimer = setInterval(() => {
+    dom.loadingSubtitle.textContent = subtitle.slice(0, charIndex + 1);
+    charIndex += 1;
+    if (charIndex >= subtitle.length) {
+      clearInterval(loadingTypingTimer);
+    }
+  }, 28);
+}
+
+function showLoadingMessage(message) {
+  dom.loadingTitle.textContent = message.title;
+  typeLoadingSubtitle(message.subtitle);
+}
+
+function startLoadingMessages(initialMessage) {
+  stopLoadingMessages();
+
+  const queue = [initialMessage, ...loadingMessages].filter(
+    (entry) => entry && entry.title && entry.subtitle
+  );
+
+  loadingMessageIndex = 0;
+  showLoadingMessage(queue[loadingMessageIndex]);
+
+  loadingMessageTimer = setInterval(() => {
+    loadingMessageIndex = (loadingMessageIndex + 1) % queue.length;
+    showLoadingMessage(queue[loadingMessageIndex]);
+  }, 3200);
+}
+
+function setLoading(
+  isLoading,
+  title = 'Evaluating values…',
+  subtitle = 'Hold on while we prepare your report.'
+) {
+  if (isLoading) {
+    startLoadingMessages({ title, subtitle });
+  } else {
+    stopLoadingMessages();
+  }
+
   dom.loadingOverlay.hidden = !isLoading;
   dom.loadingOverlay.classList.toggle('visible', isLoading);
 }
@@ -114,6 +193,7 @@ const shuffledValues = shuffleValues(valuesData);
 
 function subsetValues() {
   const pool = [...shuffledValues];
+  if (state.length === 'super-quick') return pool.slice(0, 7);
   if (state.length === 'quick') return pool.slice(0, 50);
   if (state.length === 'moderate') return pool.slice(0, 125);
   return pool;
@@ -183,6 +263,7 @@ function renderTable() {
   const start = (state.currentPage - 1) * PAGE_SIZE;
   const pageValues = state.values.slice(start, start + PAGE_SIZE);
   dom.tableContainer.innerHTML = '';
+  const useCompactControls = compactControlsQuery.matches;
 
   pageValues.forEach((value) => {
     const row = document.createElement('div');
@@ -194,29 +275,61 @@ function renderTable() {
     const controls = document.createElement('div');
     controls.className = 'table__controls';
 
-    const options = document.createElement('div');
-    options.className = 'table__options';
+    if (useCompactControls) {
+      const select = document.createElement('select');
+      select.className = 'styled-select table__select';
+      select.ariaLabel = `Rate ${value.name}`;
 
-    answerOptions.forEach((option) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = option;
-      btn.className = `ghost ${optionClasses[option]}`;
-      btn.dataset.id = value.id;
-      btn.dataset.answer = option;
-      if (state.answers[value.id] === option) {
-        btn.classList.add('option--selected');
-      }
-      btn.addEventListener('click', () => {
-        state.answers[value.id] = option;
-        renderTable();
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Tap to rate';
+      select.appendChild(placeholder);
+
+      answerOptions.forEach((option) => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        select.appendChild(opt);
+      });
+
+      select.value = state.answers[value.id] || '';
+
+      select.addEventListener('change', (event) => {
+        const selected = event.target.value;
+        if (selected) {
+          state.answers[value.id] = selected;
+        } else {
+          delete state.answers[value.id];
+        }
         updateProgress();
         saveProgress();
       });
-      options.appendChild(btn);
-    });
 
-    controls.appendChild(options);
+      controls.appendChild(select);
+    } else {
+      const options = document.createElement('div');
+      options.className = 'table__options';
+
+      answerOptions.forEach((option) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = option;
+        btn.className = `ghost ${optionClasses[option]}`;
+        btn.dataset.id = value.id;
+        btn.dataset.answer = option;
+        if (state.answers[value.id] === option) {
+          btn.classList.add('option--selected');
+        }
+        btn.addEventListener('click', () => {
+          state.answers[value.id] = option;
+          renderTable();
+          updateProgress();
+        });
+        options.appendChild(btn);
+      });
+
+      controls.appendChild(options);
+    }
     row.appendChild(left);
     row.appendChild(controls);
     dom.tableContainer.appendChild(row);
@@ -515,8 +628,20 @@ dom.modeChips.addEventListener('click', (e) => {
   syncModeUi();
   if (state.mode !== 'paired') {
     dom.relationship.value = 'partner';
+    dom.customRelationship.hidden = true;
     dom.customRelationship.value = '';
   }
+  updateCustomRelationshipVisibility();
+});
+
+dom.relationship.addEventListener('change', updateCustomRelationshipVisibility);
+
+dom.gender.addEventListener('change', () => {
+  toggleCustomGender(dom.gender, dom.customGender);
+});
+
+dom.gender2.addEventListener('change', () => {
+  toggleCustomGender(dom.gender2, dom.customGender2);
 });
 
 dom.prevPage.addEventListener('click', () => {
@@ -555,11 +680,22 @@ dom.backToBio.addEventListener('click', () => {
   setStep(1);
 });
 
+compactControlsQuery.addEventListener('change', () => {
+  renderTable();
+});
+
 // Initialize
 const savedProgress = loadSavedProgress();
 toggleChip(dom.lengthChips, state.length);
 toggleChip(dom.modeChips, state.mode);
-syncModeUi();
+dom.relationshipField.hidden = true;
+dom.relationshipField.classList.add('collapsed');
+updateCustomRelationshipVisibility();
+toggleCustomGender(dom.gender, dom.customGender);
+toggleCustomGender(dom.gender2, dom.customGender2);
+dom.partnerFields.hidden = true;
+dom.name2.required = false;
+updateValues();
 setStep(1);
 
 if (savedProgress) {

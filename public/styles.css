@@ -441,12 +441,38 @@ button:focus-visible {
   gap: 10px;
 }
 
+.table__select {
+  width: 100%;
+  min-width: 0;
+  font-weight: 700;
+}
+
 .table__options button {
   width: 100%;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.03);
   font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .table__row {
+    grid-template-columns: 1fr;
+  }
+
+  .table__controls {
+    width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .table__row {
+    gap: 10px;
+  }
+
+  .table__options {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
 }
 
 .option--indifferent {
@@ -660,6 +686,20 @@ button:focus-visible {
 
 .loading-copy p {
   margin: 4px 0;
+}
+
+#loadingSubtitle::after {
+  content: '▍';
+  display: inline-block;
+  margin-left: 2px;
+  opacity: 0.6;
+  animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to {
+    opacity: 0;
+  }
 }
 
 .synopsis {

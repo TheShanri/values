@@ -1,4 +1,4 @@
-const { handleParsedReportRequest, sendJson } = require('../reportService');
+const { enforceRateLimit, handleParsedReportRequest, sendJson } = require('../reportService');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -6,6 +6,10 @@ module.exports = async function handler(req, res) {
     sendJson(res, 405, {
       error: { code: 'method_not_allowed', message: 'Only POST is supported for /api/report.' },
     });
+    return;
+  }
+
+  if (!enforceRateLimit(req, res)) {
     return;
   }
 
