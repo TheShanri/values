@@ -630,6 +630,20 @@ button:focus-visible {
   margin: 4px 0;
 }
 
+#loadingSubtitle::after {
+  content: '▍';
+  display: inline-block;
+  margin-left: 2px;
+  opacity: 0.6;
+  animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to {
+    opacity: 0;
+  }
+}
+
 .synopsis {
   color: var(--muted);
   line-height: 1.7;
