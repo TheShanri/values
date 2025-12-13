@@ -64,6 +64,14 @@ const state = {
   toastTimer: null,
 };
 
+function updateCustomRelationshipVisibility() {
+  const isOther = dom.relationship.value === 'other';
+  dom.customRelationship.hidden = !isOther;
+  if (!isOther) {
+    dom.customRelationship.value = '';
+  }
+}
+
 function showToast(message) {
   clearTimeout(state.toastTimer);
   dom.toast.textContent = message;
@@ -428,9 +436,13 @@ dom.modeChips.addEventListener('click', (e) => {
   dom.name2.required = isPaired;
   if (!isPaired) {
     dom.relationship.value = 'partner';
+    dom.customRelationship.hidden = true;
     dom.customRelationship.value = '';
   }
+  updateCustomRelationshipVisibility();
 });
+
+dom.relationship.addEventListener('change', updateCustomRelationshipVisibility);
 
 dom.prevPage.addEventListener('click', () => {
   if (state.currentPage === 1) return;
@@ -468,6 +480,7 @@ toggleChip(dom.lengthChips, state.length);
 toggleChip(dom.modeChips, state.mode);
 dom.relationshipField.hidden = true;
 dom.relationshipField.classList.add('collapsed');
+updateCustomRelationshipVisibility();
 dom.partnerFields.hidden = true;
 dom.name2.required = false;
 updateValues();
