@@ -153,6 +153,15 @@ function updateCustomRelationshipVisibility() {
   }
 }
 
+function updateCustomGenderVisibility(selectEl, inputEl) {
+  if (!selectEl || !inputEl) return;
+  const isSelfDescribed = selectEl.value === 'Self-described';
+  inputEl.hidden = !isSelfDescribed;
+  if (!isSelfDescribed) {
+    inputEl.value = '';
+  }
+}
+
 function applyFormValues(snapshot = {}) {
   dom.name.value = snapshot.name || '';
   dom.age.value = snapshot.age || '';
@@ -165,6 +174,8 @@ function applyFormValues(snapshot = {}) {
   dom.relationship.value = snapshot.relationship || 'partner';
   dom.customRelationship.value = snapshot.customRelationship || '';
   updateCustomRelationshipVisibility();
+  updateCustomGenderVisibility(dom.gender, dom.customGender);
+  updateCustomGenderVisibility(dom.gender2, dom.customGender2);
 }
 
 function persistProgress() {
@@ -637,6 +648,9 @@ dom.modeChips.addEventListener('click', (e) => {
 
 dom.relationship.addEventListener('change', updateCustomRelationshipVisibility);
 
+dom.gender.addEventListener('change', () => updateCustomGenderVisibility(dom.gender, dom.customGender));
+dom.gender2.addEventListener('change', () => updateCustomGenderVisibility(dom.gender2, dom.customGender2));
+
 dom.prevPage.addEventListener('click', () => {
   if (state.currentPage === 1) return;
   state.currentPage -= 1;
@@ -693,6 +707,8 @@ dom.relationshipField.hidden = true;
 dom.relationshipField.classList.add('collapsed');
 dom.partnerFields.hidden = true;
 dom.name2.required = false;
+updateCustomGenderVisibility(dom.gender, dom.customGender);
+updateCustomGenderVisibility(dom.gender2, dom.customGender2);
 updateValues();
 setStep(1);
 promptResumeIfAvailable();
