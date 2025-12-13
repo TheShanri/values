@@ -2,7 +2,7 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 
-const { handleReportRequest, sendJson } = require('./reportService');
+const { enforceRateLimit, handleReportRequest, sendJson } = require('./reportService');
 
 const port = process.env.PORT || 3000;
 const publicDir = path.join(__dirname, 'public');
@@ -42,6 +42,9 @@ function serveStatic(req, res) {
 
 const server = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url.startsWith('/api/report')) {
+    if (!enforceRateLimit(req, res)) {
+      return;
+    }
     handleReportRequest(req, res);
     return;
   }
