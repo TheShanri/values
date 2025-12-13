@@ -304,6 +304,7 @@ const shuffledValues = shuffleValues(valuesData);
 
 function subsetValues() {
   const pool = [...shuffledValues];
+  if (state.length === 'super-quick') return pool.slice(0, 10);
   if (state.length === 'quick') return pool.slice(0, 50);
   if (state.length === 'moderate') return pool.slice(0, 125);
   return pool;
