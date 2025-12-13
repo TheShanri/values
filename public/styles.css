@@ -640,6 +640,7 @@ button:focus-visible {
   border: 6px solid rgba(255, 255, 255, 0.12);
   border-top-color: var(--accent-2);
   box-shadow: 0 0 30px rgba(61, 225, 255, 0.3);
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
