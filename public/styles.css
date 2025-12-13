@@ -553,6 +553,12 @@ button:focus-visible {
   min-height: 160px;
 }
 
+.report.report--error {
+  border-color: #ff7b7b;
+  background: rgba(255, 123, 123, 0.05);
+  color: #ff9f9f;
+}
+
 .toast {
   position: fixed;
   right: 22px;
