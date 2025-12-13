@@ -688,18 +688,13 @@ compactControlsQuery.addEventListener('change', () => {
 const savedProgress = loadSavedProgress();
 toggleChip(dom.lengthChips, state.length);
 toggleChip(dom.modeChips, state.mode);
-dom.relationshipField.hidden = true;
-dom.relationshipField.classList.add('collapsed');
-updateCustomRelationshipVisibility();
+syncModeUi();
 toggleCustomGender(dom.gender, dom.customGender);
 toggleCustomGender(dom.gender2, dom.customGender2);
-dom.partnerFields.hidden = true;
-dom.name2.required = false;
+updateCustomRelationshipVisibility();
 updateValues();
 setStep(1);
 
 if (savedProgress) {
   showResumeModal(savedProgress);
-} else {
-  updateValues();
 }
