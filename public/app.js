@@ -50,6 +50,9 @@ const dom = {
   loadingOverlay: document.querySelector('#loadingOverlay'),
   loadingTitle: document.querySelector('#loadingTitle'),
   loadingSubtitle: document.querySelector('#loadingSubtitle'),
+  resumeModal: document.querySelector('#resumeModal'),
+  resumeContinue: document.querySelector('#resumeContinue'),
+  resumeStartOver: document.querySelector('#resumeStartOver'),
 };
 
 const state = {
@@ -201,6 +204,7 @@ function updateValues(preserveAnswers = false) {
   if (!preserveAnswers) {
     state.answers = {};
     state.currentPage = 1;
+    clearProgress();
   }
   dom.progressTotal.textContent = state.values.length;
   renderTable();
@@ -216,6 +220,14 @@ function setStep(step) {
   dom.resultsCard.hidden = step !== 3;
   const target = step === 1 ? dom.setupCard : step === 2 ? dom.quizCard : dom.resultsCard;
   target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function syncModeUi() {
+  const isPaired = state.mode === 'paired';
+  dom.relationshipField.hidden = !isPaired;
+  dom.relationshipField.classList.toggle('collapsed', !isPaired);
+  dom.partnerFields.hidden = !isPaired;
+  dom.name2.required = isPaired;
 }
 
 function updateProgress() {
@@ -290,6 +302,7 @@ function renderTable() {
           delete state.answers[value.id];
         }
         updateProgress();
+        saveProgress();
       });
 
       controls.appendChild(select);
@@ -323,6 +336,77 @@ function renderTable() {
   });
 
   updatePaginationControls();
+}
+
+function clearProgress() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+function saveProgress() {
+  try {
+    const payload = {
+      answers: state.answers,
+      length: state.length,
+      mode: state.mode,
+      currentPage: state.currentPage,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.error('Unable to save quiz progress', error);
+  }
+}
+
+function loadSavedProgress() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return null;
+
+  try {
+    const data = JSON.parse(saved);
+    if (!data?.answers || !Object.keys(data.answers).length) return null;
+
+    return data;
+  } catch (error) {
+    console.error('Unable to load saved quiz progress', error);
+    clearProgress();
+    return null;
+  }
+}
+
+function applySavedProgress(data) {
+  state.length = data.length || state.length;
+  state.mode = data.mode || state.mode;
+  state.answers = data.answers || {};
+  state.currentPage = data.currentPage || 1;
+
+  toggleChip(dom.lengthChips, state.length);
+  toggleChip(dom.modeChips, state.mode);
+  syncModeUi();
+  updateValues(true);
+  setStep(2);
+}
+
+function hideResumeModal() {
+  dom.resumeModal.classList.remove('visible');
+  dom.resumeModal.hidden = true;
+}
+
+function showResumeModal(data) {
+  pendingResumeData = data;
+  dom.resumeModal.hidden = false;
+  requestAnimationFrame(() => dom.resumeModal.classList.add('visible'));
+}
+
+function handleResumeDecision(shouldResume) {
+  hideResumeModal();
+  if (shouldResume && pendingResumeData) {
+    applySavedProgress(pendingResumeData);
+  } else {
+    clearProgress();
+    updateValues();
+    setStep(1);
+  }
+  pendingResumeData = null;
 }
 
 function buildProfile(prefix = '') {
@@ -377,6 +461,7 @@ function prepareProfiles() {
   state.currentParticipant = 1;
   state.answers = {};
   state.currentPage = 1;
+  clearProgress();
   dom.participantBadge.textContent = secondary
     ? `Participant 1 - ${primary.name}`
     : `Participant 1 - ${primary.name}`;
@@ -409,6 +494,7 @@ async function submitParticipant() {
     state.currentParticipant = 2;
     state.answers = {};
     state.currentPage = 1;
+    clearProgress();
     dom.participantBadge.textContent = `Participant 2 - ${state.profiles[2].name}`;
     renderTable();
     updateProgress();
@@ -433,6 +519,7 @@ function renderJson(participants) {
 }
 
 async function finalize() {
+  clearProgress();
   setLoading(true);
   dom.nextPage.disabled = true;
   dom.prevPage.disabled = true;
@@ -538,12 +625,8 @@ dom.modeChips.addEventListener('click', (e) => {
   if (!btn) return;
   state.mode = btn.dataset.mode;
   toggleChip(dom.modeChips, state.mode);
-  const isPaired = state.mode === 'paired';
-  dom.relationshipField.hidden = !isPaired;
-  dom.relationshipField.classList.toggle('collapsed', !isPaired);
-  dom.partnerFields.hidden = !isPaired;
-  dom.name2.required = isPaired;
-  if (!isPaired) {
+  syncModeUi();
+  if (state.mode !== 'paired') {
     dom.relationship.value = 'partner';
     dom.customRelationship.hidden = true;
     dom.customRelationship.value = '';
@@ -565,6 +648,7 @@ dom.prevPage.addEventListener('click', () => {
   if (state.currentPage === 1) return;
   state.currentPage -= 1;
   renderTable();
+  saveProgress();
   scrollToQuizTop();
 });
 
@@ -577,6 +661,7 @@ dom.nextPage.addEventListener('click', () => {
   }
   state.currentPage += 1;
   renderTable();
+  saveProgress();
   scrollToQuizTop();
 });
 
@@ -588,6 +673,9 @@ dom.toQuiz.addEventListener('click', () => {
   }
 });
 
+dom.resumeContinue.addEventListener('click', () => handleResumeDecision(true));
+dom.resumeStartOver.addEventListener('click', () => handleResumeDecision(false));
+
 dom.backToBio.addEventListener('click', () => {
   setStep(1);
 });
@@ -597,6 +685,7 @@ compactControlsQuery.addEventListener('change', () => {
 });
 
 // Initialize
+const savedProgress = loadSavedProgress();
 toggleChip(dom.lengthChips, state.length);
 toggleChip(dom.modeChips, state.mode);
 dom.relationshipField.hidden = true;
@@ -608,3 +697,9 @@ dom.partnerFields.hidden = true;
 dom.name2.required = false;
 updateValues();
 setStep(1);
+
+if (savedProgress) {
+  showResumeModal(savedProgress);
+} else {
+  updateValues();
+}
