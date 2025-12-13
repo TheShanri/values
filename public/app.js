@@ -50,6 +50,9 @@ const dom = {
   loadingOverlay: document.querySelector('#loadingOverlay'),
   loadingTitle: document.querySelector('#loadingTitle'),
   loadingSubtitle: document.querySelector('#loadingSubtitle'),
+  resumeModal: document.querySelector('#resumeModal'),
+  resumeContinue: document.querySelector('#resumeContinue'),
+  resumeStartOver: document.querySelector('#resumeStartOver'),
 };
 
 const state = {
@@ -65,6 +68,8 @@ const state = {
   relationshipType: 'partner',
   toastTimer: null,
 };
+
+let pendingResumeData = null;
 
 function showToast(message) {
   clearTimeout(state.toastTimer);
@@ -135,6 +140,14 @@ function setStep(step) {
   dom.resultsCard.hidden = step !== 3;
   const target = step === 1 ? dom.setupCard : step === 2 ? dom.quizCard : dom.resultsCard;
   target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function syncModeUi() {
+  const isPaired = state.mode === 'paired';
+  dom.relationshipField.hidden = !isPaired;
+  dom.relationshipField.classList.toggle('collapsed', !isPaired);
+  dom.partnerFields.hidden = !isPaired;
+  dom.name2.required = isPaired;
 }
 
 function updateProgress() {
@@ -233,33 +246,54 @@ function saveProgress() {
 
 function loadSavedProgress() {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return false;
+  if (!saved) return null;
 
   try {
     const data = JSON.parse(saved);
-    if (!data?.answers || !Object.keys(data.answers).length) return false;
+    if (!data?.answers || !Object.keys(data.answers).length) return null;
 
-    const resume = window.confirm('Resume your previous quiz where you left off?');
-    if (!resume) {
-      clearProgress();
-      return false;
-    }
-
-    state.length = data.length || state.length;
-    state.mode = data.mode || state.mode;
-    state.answers = data.answers || {};
-    state.currentPage = data.currentPage || 1;
-
-    updateValues(true);
-    updateProgress();
-    updatePaginationControls();
-    setStep(2);
-    return true;
+    return data;
   } catch (error) {
     console.error('Unable to load saved quiz progress', error);
     clearProgress();
-    return false;
+    return null;
   }
+}
+
+function applySavedProgress(data) {
+  state.length = data.length || state.length;
+  state.mode = data.mode || state.mode;
+  state.answers = data.answers || {};
+  state.currentPage = data.currentPage || 1;
+
+  toggleChip(dom.lengthChips, state.length);
+  toggleChip(dom.modeChips, state.mode);
+  syncModeUi();
+  updateValues(true);
+  setStep(2);
+}
+
+function hideResumeModal() {
+  dom.resumeModal.classList.remove('visible');
+  dom.resumeModal.hidden = true;
+}
+
+function showResumeModal(data) {
+  pendingResumeData = data;
+  dom.resumeModal.hidden = false;
+  requestAnimationFrame(() => dom.resumeModal.classList.add('visible'));
+}
+
+function handleResumeDecision(shouldResume) {
+  hideResumeModal();
+  if (shouldResume && pendingResumeData) {
+    applySavedProgress(pendingResumeData);
+  } else {
+    clearProgress();
+    updateValues();
+    setStep(1);
+  }
+  pendingResumeData = null;
 }
 
 function buildProfile(prefix = '') {
@@ -478,12 +512,8 @@ dom.modeChips.addEventListener('click', (e) => {
   if (!btn) return;
   state.mode = btn.dataset.mode;
   toggleChip(dom.modeChips, state.mode);
-  const isPaired = state.mode === 'paired';
-  dom.relationshipField.hidden = !isPaired;
-  dom.relationshipField.classList.toggle('collapsed', !isPaired);
-  dom.partnerFields.hidden = !isPaired;
-  dom.name2.required = isPaired;
-  if (!isPaired) {
+  syncModeUi();
+  if (state.mode !== 'paired') {
     dom.relationship.value = 'partner';
     dom.customRelationship.value = '';
   }
@@ -518,20 +548,22 @@ dom.toQuiz.addEventListener('click', () => {
   }
 });
 
+dom.resumeContinue.addEventListener('click', () => handleResumeDecision(true));
+dom.resumeStartOver.addEventListener('click', () => handleResumeDecision(false));
+
 dom.backToBio.addEventListener('click', () => {
   setStep(1);
 });
 
 // Initialize
-const resumed = loadSavedProgress();
+const savedProgress = loadSavedProgress();
 toggleChip(dom.lengthChips, state.length);
 toggleChip(dom.modeChips, state.mode);
-const isPaired = state.mode === 'paired';
-dom.relationshipField.hidden = !isPaired;
-dom.relationshipField.classList.toggle('collapsed', !isPaired);
-dom.partnerFields.hidden = !isPaired;
-dom.name2.required = isPaired;
-if (!resumed) {
+syncModeUi();
+setStep(1);
+
+if (savedProgress) {
+  showResumeModal(savedProgress);
+} else {
   updateValues();
-  setStep(1);
 }
