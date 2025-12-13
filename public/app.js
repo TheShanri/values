@@ -75,9 +75,73 @@ function showToast(message) {
   }, 2600);
 }
 
-function setLoading(isLoading, title = 'Evaluating values…', subtitle = 'Hold on while we prepare your report.') {
-  dom.loadingTitle.textContent = title;
-  dom.loadingSubtitle.textContent = subtitle;
+const loadingMessages = [
+  { title: 'Analyzing your stars…', subtitle: 'Plotting constellations of your core values.' },
+  { title: 'Consulting the philosophers…', subtitle: 'Socrates, Simone, and Seneca are on the case.' },
+  { title: 'Asking the algorithms nicely…', subtitle: 'Polishing every insight before it reaches you.' },
+  { title: 'Decoding your narrative…', subtitle: 'Weaving your answers into a story worth rereading.' },
+  { title: 'Brewing perspective…', subtitle: 'Steeping wisdom to the perfect temperature.' },
+];
+
+let loadingMessageIndex = 0;
+let loadingMessageTimer = null;
+let loadingTypingTimer = null;
+
+function stopLoadingMessages() {
+  clearInterval(loadingMessageTimer);
+  clearInterval(loadingTypingTimer);
+  loadingMessageTimer = null;
+  loadingTypingTimer = null;
+}
+
+function typeLoadingSubtitle(subtitle) {
+  clearInterval(loadingTypingTimer);
+  dom.loadingSubtitle.textContent = '';
+
+  if (!subtitle) return;
+
+  let charIndex = 0;
+  loadingTypingTimer = setInterval(() => {
+    dom.loadingSubtitle.textContent = subtitle.slice(0, charIndex + 1);
+    charIndex += 1;
+    if (charIndex >= subtitle.length) {
+      clearInterval(loadingTypingTimer);
+    }
+  }, 28);
+}
+
+function showLoadingMessage(message) {
+  dom.loadingTitle.textContent = message.title;
+  typeLoadingSubtitle(message.subtitle);
+}
+
+function startLoadingMessages(initialMessage) {
+  stopLoadingMessages();
+
+  const queue = [initialMessage, ...loadingMessages].filter(
+    (entry) => entry && entry.title && entry.subtitle
+  );
+
+  loadingMessageIndex = 0;
+  showLoadingMessage(queue[loadingMessageIndex]);
+
+  loadingMessageTimer = setInterval(() => {
+    loadingMessageIndex = (loadingMessageIndex + 1) % queue.length;
+    showLoadingMessage(queue[loadingMessageIndex]);
+  }, 3200);
+}
+
+function setLoading(
+  isLoading,
+  title = 'Evaluating values…',
+  subtitle = 'Hold on while we prepare your report.'
+) {
+  if (isLoading) {
+    startLoadingMessages({ title, subtitle });
+  } else {
+    stopLoadingMessages();
+  }
+
   dom.loadingOverlay.hidden = !isLoading;
   dom.loadingOverlay.classList.toggle('visible', isLoading);
 }
