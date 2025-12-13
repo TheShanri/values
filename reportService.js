@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const recentRequests = new Map();
+
 function loadDotenv() {
   const envPath = path.join(__dirname, '.env');
   if (!fs.existsSync(envPath)) return;
@@ -30,6 +33,38 @@ const GEMINI_ENDPOINT =
 function sendJson(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
+}
+
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return (
+    req.connection?.remoteAddress ||
+    req.socket?.remoteAddress ||
+    req.info?.remoteAddress ||
+    'unknown'
+  );
+}
+
+function enforceRateLimit(req, res) {
+  const now = Date.now();
+  const ip = getClientIp(req);
+  const lastRequestTime = recentRequests.get(ip);
+
+  if (lastRequestTime && now - lastRequestTime < RATE_LIMIT_WINDOW_MS) {
+    sendJson(res, 429, {
+      error: {
+        code: 'too_many_requests',
+        message: 'Too many requests. Please wait before trying again.',
+      },
+    });
+    return false;
+  }
+
+  recentRequests.set(ip, now);
+  return true;
 }
 
 function parseReport(text) {
@@ -256,6 +291,7 @@ async function handleParsedReportRequest(req, res) {
 module.exports = {
   buildPrompt,
   generateReport,
+  enforceRateLimit,
   handleReportRequest,
   handleParsedReportRequest,
   sendJson,
