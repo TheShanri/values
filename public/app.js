@@ -114,6 +114,18 @@ function applyFormValues(snapshot = {}) {
   dom.customGender2.value = snapshot.customGender2 || '';
   dom.relationship.value = snapshot.relationship || 'partner';
   dom.customRelationship.value = snapshot.customRelationship || '';
+
+  toggleCustomGenderVisibility(dom.gender, dom.customGender);
+  toggleCustomGenderVisibility(dom.gender2, dom.customGender2);
+}
+
+function toggleCustomGenderVisibility(selectEl, inputEl) {
+  if (!selectEl || !inputEl) return;
+  const isSelfDescribed = selectEl.value === 'Self-described';
+  inputEl.hidden = !isSelfDescribed;
+  if (!isSelfDescribed) {
+    inputEl.value = '';
+  }
 }
 
 function persistProgress() {
@@ -555,6 +567,14 @@ dom.startBtn.addEventListener('click', () => {
 
 dom.scrollToValues.addEventListener('click', () => {
   setStep(1);
+});
+
+dom.gender.addEventListener('change', () => {
+  toggleCustomGenderVisibility(dom.gender, dom.customGender);
+});
+
+dom.gender2.addEventListener('change', () => {
+  toggleCustomGenderVisibility(dom.gender2, dom.customGender2);
 });
 
 dom.lengthChips.addEventListener('click', (e) => {
