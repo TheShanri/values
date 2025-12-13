@@ -671,6 +671,20 @@ dom.prevPage.addEventListener('click', () => {
 });
 
 dom.nextPage.addEventListener('click', () => {
+  const start = (state.currentPage - 1) * PAGE_SIZE;
+  const currentValues = state.values.slice(start, start + PAGE_SIZE);
+  const unansweredIndex = currentValues.findIndex((item) => !state.answers[item.id]);
+
+  if (unansweredIndex !== -1) {
+    showToast('Please rate all values before continuing.');
+    const rows = dom.tableContainer.children;
+    const targetRow = rows[unansweredIndex];
+    if (targetRow) {
+      targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
+
   const totalPages = Math.ceil(state.values.length / PAGE_SIZE);
   if (state.currentPage >= totalPages) {
     scrollToQuizTop();
