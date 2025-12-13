@@ -103,6 +103,14 @@ function getFormValuesSnapshot() {
   };
 }
 
+function updateCustomRelationshipVisibility() {
+  const isOther = dom.relationship.value === 'other';
+  dom.customRelationship.hidden = !isOther;
+  if (!isOther) {
+    dom.customRelationship.value = '';
+  }
+}
+
 function applyFormValues(snapshot = {}) {
   dom.name.value = snapshot.name || '';
   dom.age.value = snapshot.age || '';
@@ -114,6 +122,7 @@ function applyFormValues(snapshot = {}) {
   dom.customGender2.value = snapshot.customGender2 || '';
   dom.relationship.value = snapshot.relationship || 'partner';
   dom.customRelationship.value = snapshot.customRelationship || '';
+  updateCustomRelationshipVisibility();
 }
 
 function persistProgress() {
@@ -211,6 +220,7 @@ function resetToDefaults() {
   dom.relationshipField.classList.add('collapsed');
   dom.partnerFields.hidden = true;
   dom.name2.required = false;
+  updateCustomRelationshipVisibility();
   dom.participantBadge.textContent = 'Participant 1';
 
   updateValues();
@@ -578,8 +588,11 @@ dom.modeChips.addEventListener('click', (e) => {
   if (!isPaired) {
     dom.relationship.value = 'partner';
     dom.customRelationship.value = '';
+    dom.customRelationship.hidden = true;
   }
 });
+
+dom.relationship.addEventListener('change', updateCustomRelationshipVisibility);
 
 dom.prevPage.addEventListener('click', () => {
   if (state.currentPage === 1) return;
