@@ -65,10 +65,21 @@ const state = {
   currentStep: 1,
   relationshipType: 'partner',
   toastTimer: null,
+  loadingMessageTimer: null,
+  loadingStreamTimer: null,
 };
 
 const STORAGE_KEY = 'valuesQuizProgress';
 let pendingResumeData = null;
+
+const LOADING_MESSAGES = [
+  'Analyzing your stars…',
+  'Consulting the philosophers…',
+  'Balancing head, heart, and gut…',
+  'Negotiating with your inner heroes…',
+  'Counting virtues — twice for honesty…',
+  'Asking the muses for a quick peer review…',
+];
 
 function showToast(message) {
   clearTimeout(state.toastTimer);
@@ -82,10 +93,41 @@ function showToast(message) {
 }
 
 function setLoading(isLoading, title = 'Evaluating values…', subtitle = 'Hold on while we prepare your report.') {
+  clearInterval(state.loadingStreamTimer);
+  clearTimeout(state.loadingMessageTimer);
   dom.loadingTitle.textContent = title;
   dom.loadingSubtitle.textContent = subtitle;
   dom.loadingOverlay.hidden = !isLoading;
   dom.loadingOverlay.classList.toggle('visible', isLoading);
+
+  if (isLoading) {
+    startLoadingMessages(subtitle);
+  }
+}
+
+function startLoadingMessages(seedSubtitle) {
+  const messages = [seedSubtitle, ...LOADING_MESSAGES];
+  let index = 0;
+
+  const typeMessage = (message) => {
+    let charIndex = 0;
+    dom.loadingSubtitle.textContent = '';
+    state.loadingStreamTimer = setInterval(() => {
+      if (charIndex <= message.length) {
+        dom.loadingSubtitle.textContent = message.slice(0, charIndex);
+        charIndex += 1;
+        return;
+      }
+
+      clearInterval(state.loadingStreamTimer);
+      state.loadingMessageTimer = setTimeout(() => {
+        index = (index + 1) % messages.length;
+        typeMessage(messages[index]);
+      }, 700);
+    }, 35);
+  };
+
+  typeMessage(messages[index]);
 }
 
 function getFormValuesSnapshot() {
