@@ -24,8 +24,9 @@ loadDotenv();
 // Support multiple common environment variable names to reduce setup mistakes.
 const GEMINI_API_KEY =
   process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.V_KEY;
-const GEMINI_ENDPOINT =
-  'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent';
+const BASE_URL = 'https://generativelanguage.googleapis.com/v1/models';
+const PRIMARY_MODEL = 'gemini-2.5-flash';
+const FALLBACK_MODEL = 'gemini-1.5-flash';
 
 function sendJson(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -150,59 +151,63 @@ function buildPrompt({ participants, mode, relationshipType }) {
   return `${intro}\n${emphasisNote}\n\nRespond ONLY with JSON (no markdown fences) using this schema:\n{\n  "title": "Values Alignment Report",\n  "intro": "1-3 sentence overview",\n  "meta": {"mode": "solo|paired", "relationshipType": "${label}", "quizLength": "quick|moderate|full"},\n  "participants": [\n    {"name": "Name", "archetype": "Title", "synopsis": "2-3 paragraphs that summarize who they are, how they show up, and their relational vibe", "summary": "1-2 sentence tagline", "strengths": ["..."], "growth": ["..."]}\n  ],\n  "compatibility": {"pairedSynopsis": "2-3 paragraphs on the shared dynamic", "summary": "paragraph", "harmony": ["..."], "tension": ["..."]},\n  "recommendations": ["..."],\n  "inspiration": ["short quotes"],\n  "links": [{"label": "Source", "url": "https://..."}]\n}\n\nProfiles:\n${summaries}`;
 }
 
+async function callGemini(model, prompt, signal) {
+  const url = `${BASE_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+  const body = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generation_config: {
+      temperature: 0.4,
+      response_mime_type: 'application/json',
+    },
+  });
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+    signal,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Model ${model} failed (${response.status}): ${errorText}`);
+  }
+
+  return response.json();
+}
+
 async function generateReport({ participants, mode, relationshipType }) {
   const prompt = buildPrompt({ participants, mode, relationshipType });
 
   if (!GEMINI_API_KEY) {
-    return {
-      text:
-        'Gemini key not configured (set GEMINI_API_KEY, GOOGLE_API_KEY, or V_KEY).' +
-        ` Here is a preview of what would be sent:\n${prompt}`,
-      usedGemini: false,
-    };
+    return { text: 'Gemini key missing.', usedGemini: false };
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
   try {
-    const response = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: prompt }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          responseMimeType: 'application/json',
-        },
-      }),
-      signal: controller.signal,
-    });
+    let data;
+    try {
+      console.log(`Attempting with ${PRIMARY_MODEL}...`);
+      data = await callGemini(PRIMARY_MODEL, prompt, controller.signal);
+    } catch (primaryError) {
+      console.warn(`${PRIMARY_MODEL} failed, switching to ${FALLBACK_MODEL}. Error:`, primaryError.message);
+      data = await callGemini(FALLBACK_MODEL, prompt, controller.signal);
+    }
 
     clearTimeout(timeout);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API error ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-    const text =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      'Gemini returned no content. Please try again.';
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      'Gemini returned no content.';
 
     return { text, usedGemini: true, report: parseReport(text) };
+
   } catch (error) {
     clearTimeout(timeout);
     return {
-      text: `Unable to reach Gemini: ${error.message}. Prompt preview:\n${prompt}`,
+      text: `All models failed. Last error: ${error.message}`,
       usedGemini: false,
     };
   }
